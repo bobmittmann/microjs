@@ -273,6 +273,7 @@ int main(int argc,  char **argv)
 	microjs_vm_tracef = ftrace;
 	/* initialize virtual machine */
 	microjs_vm_init(&vm, rt, NULL, vm_data, vm_stack);
+	vm.trace_en = true;
 
 	/* run */
 	if ((err = microjs_exec(&vm, vm_code)) != 0) {

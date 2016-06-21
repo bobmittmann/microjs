@@ -42,26 +42,28 @@
 
 #if MICROJS_STDLIB_ENABLED 
 
+#define ARG(_NO_) argv[argc - (_NO_) - 1]
+#define RETURN(_RET_) argv[argc - 1] = _RET_; return 1
+
 int32_t __rand(void * env, int32_t argv[], int argc) 
 {
-	int32_t * retv = argv;
+	int32_t val;
+	
+	val = rand();
+	DCC_LOG1(LOG_MSG, "%d", val);
 
-	retv[0] = rand();
-	DCC_LOG1(LOG_MSG, "%d", retv[0]);
-
-	return 1;
+	RETURN(val);
 };
 
 int32_t __srand(void * env, int32_t argv[], int argc) 
 {
-	srand(argv[0]);
+	srand(ARG(0));
 	return 0;
 };
 
 int32_t __isqrt(void * env, int32_t argv[], int argc)
 {
-	int32_t * retv = argv;
-	uint32_t x = argv[0];
+	uint32_t x = ARG(0);
 	uint32_t rem = 0;
 	uint32_t root = 0;
 	int i;
@@ -78,31 +80,25 @@ int32_t __isqrt(void * env, int32_t argv[], int argc)
 			root--;
 	}
 
-	retv[0] = root >> 1;
-
-	return 1;
+	RETURN(root >> 1);
 }	
 
 int32_t __memrd(void * env, int32_t argv[], int argc)
 {
-	int32_t * retv = argv;
-	uint32_t addr = argv[0];
+	uint32_t addr = ARG(0);
 
 	if (addr >= 256)
 		return -1;
 
-	retv[0] = 0;
-
-	return 1;
+	RETURN(0);
 }	
 
 int32_t __ilog2(void * env, int32_t argv[], int argc)
 {
-	int32_t * retv = argv;
 	const uint8_t log2_debruijn_index[32] = {
 		0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
 		31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9 };
-	int32_t x = argv[0];
+	int32_t x = ARG(0);
 
 	x |= x >> 1; 
 	x |= x >> 2;
@@ -111,15 +107,13 @@ int32_t __ilog2(void * env, int32_t argv[], int argc)
 	x |= x >> 16;
 	x = (x >> 1) + 1;
 	x = (x * 0x077cb531UL) >> 27;
-	retv[0] = log2_debruijn_index[x];
-	return 1;
+
+	RETURN(log2_debruijn_index[x]);
 }	
 
 int32_t __time(void * env, int32_t argv[], int argc)
 {
-	int32_t * retv = argv;
-	retv[0] = (int32_t)time(NULL);
-	return 1;
+	RETURN((int32_t)time(NULL));
 }	
 
 #if MICROJS_STRINGS_ENABLED 
@@ -249,7 +243,7 @@ static int32_t __vprintf(void * env, int32_t argv[], int argc, const char * fmt)
 	} val;
 	int i = 0;
 
-	#define _va_arg(AP, TYPE) ((i < argc) ? argv[i++] : 0)
+	#define _va_arg(AP, TYPE) ((i < argc) ? ARG(i++) : 0)
 
 	n = 0;
 	w = 0;
@@ -392,9 +386,9 @@ print_buf:
 int32_t __printf(void * env, int32_t argv[], int argc)
 {
 #if MICROJS_STRINGS_ENABLED 
-	const char * fmt = str(argv[0]);
+	const char * fmt = str(ARG(0));
 
-	return __vprintf(env, &argv[1], argc - 1, fmt);
+	return __vprintf(env, argv, argc - 1, fmt);
 #else
 	return -ERR_STRINGS_UNSUPORTED;
 #endif /* MICROJS_STRINGS_ENABLED */
@@ -404,12 +398,12 @@ int32_t __print(void * env, int32_t argv[], int argc)
 {
 	int i;
 
-	DCC_LOG1(LOG_MSG, "%d", argv[0]);
+	DCC_LOG1(LOG_MSG, "%d", ARG(0));
 	
 	for (i = 0; i < argc; ++i) {
 		if (i != 0)
 			__vprintf(env, argv, 0, ", ");
-		__vprintf(env, &argv[i], 1, "%d");
+		__vprintf(env, &ARG(i), 1, "%d");
 	}
 
 	__vprintf(env, argv, 0, "\n");
@@ -425,7 +419,7 @@ struct {
 int32_t __sens_state(void * env, int32_t argv[], int argc)
 {
 	int32_t * retv = argv;
-	unsigned int addr = argv[0];
+	unsigned int addr = ARG(0);
 
 	if (addr > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
@@ -437,8 +431,8 @@ int32_t __sens_state(void * env, int32_t argv[], int argc)
 
 int32_t __sens_alarm(void * env, int32_t argv[], int argc)
 {
-	unsigned int addr = argv[0];
-	unsigned int val = argv[1];
+	unsigned int addr = ARG(0);
+	unsigned int val = ARG(1);
 
 	if (addr > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
@@ -453,8 +447,8 @@ int32_t __sens_alarm(void * env, int32_t argv[], int argc)
 
 int32_t __sens_trouble(void * env, int32_t argv[], int argc)
 {
-	unsigned int addr = argv[0];
-	unsigned int val = argv[1];
+	unsigned int addr = ARG(0);
+	unsigned int val = ARG(1);
 
 	if (addr > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
@@ -471,7 +465,7 @@ int32_t __sens_trouble(void * env, int32_t argv[], int argc)
 int32_t __mod_state(void * env, int32_t argv[], int argc)
 {
 	int32_t * retv = argv;
-	unsigned int addr = argv[0];
+	unsigned int addr = ARG(0);
 
 	if (addr > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
@@ -485,8 +479,8 @@ int32_t __mod_state(void * env, int32_t argv[], int argc)
 
 int32_t __mod_alarm(void * env, int32_t argv[], int argc)
 {
-	unsigned int addr = argv[0];
-	unsigned int val = argv[1];
+	unsigned int addr = ARG(0);
+	unsigned int val = ARG(1);
 
 	if (addr > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
@@ -503,8 +497,8 @@ int32_t __mod_alarm(void * env, int32_t argv[], int argc)
 
 int32_t __mod_trouble(void * env, int32_t argv[], int argc)
 {
-	unsigned int addr = argv[0];
-	unsigned int val = argv[1];
+	unsigned int addr = ARG(0);
+	unsigned int val = ARG(1);
 
 	if (addr > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
@@ -524,7 +518,7 @@ int32_t __mod_trouble(void * env, int32_t argv[], int argc)
 int32_t __sensor(void * env, int32_t argv[], int argc)
 {
 	/* just check for bounds */
-	if ((uint32_t)argv[0] > 159)
+	if ((uint32_t)ARG(0) > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
 	return 1; /* return the number of return values */
 }	
@@ -532,9 +526,9 @@ int32_t __sensor(void * env, int32_t argv[], int argc)
 /* Array index translator */
 int32_t __module(void * env, int32_t argv[], int argc)
 {
-	if ((uint32_t)argv[0] > 159)
+	if ((uint32_t)ARG(0) > 159)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
-	argv[0] = argv[0] + 160; /* add the offset */
+	ARG(0) = ARG(0) + 160; /* add the offset */
 	return 1; /* return the number of return values */
 }	
 
@@ -542,7 +536,7 @@ int32_t __module(void * env, int32_t argv[], int argc)
 int32_t __dev_state(void * env, int32_t argv[], int argc)
 {
 	int32_t * retv = argv;
-	unsigned int oid = argv[0];
+	unsigned int oid = ARG(0);
 
 	retv[0] = (device[oid].alm ? 1 : 0) + (device[oid].tbl ? 2 : 0);
 
@@ -553,10 +547,10 @@ int32_t __dev_state(void * env, int32_t argv[], int argc)
 int32_t __dev_alarm(void * env, int32_t argv[], int argc)
 {
 	int32_t * retv = argv;
-	unsigned int oid = argv[0];
+	unsigned int oid = ARG(0);
 
 	if (argc > 1) { /* set */
-		unsigned int val = argv[1];
+		unsigned int val = ARG(1);
 
 		if (val >= 16)
 			return -EXCEPT_INVALID_ALARM_CODE;
@@ -575,10 +569,10 @@ int32_t __dev_alarm(void * env, int32_t argv[], int argc)
 int32_t __dev_trouble(void * env, int32_t argv[], int argc)
 {
 	int32_t * retv = argv;
-	unsigned int oid = argv[0];
+	unsigned int oid = ARG(0);
 
 	if (argc > 1) { /* set */
-		unsigned int val = argv[1];
+		unsigned int val = ARG(1);
 
 		if (val >= 16)
 			return -EXCEPT_INVALID_ALARM_CODE;
@@ -597,11 +591,11 @@ int32_t __dev_trouble(void * env, int32_t argv[], int argc)
 int32_t __dev_level(void * env, int32_t argv[], int argc)
 {
 	int32_t * retv = argv;
-	unsigned int oid = argv[0];
-	unsigned int idx = argv[1];
+	unsigned int oid = ARG(0);
+	unsigned int idx = ARG(1);
 
 	if (argc > 2) { /* set */
-		unsigned int val = argv[2];
+		unsigned int val = ARG(2);
 
 		if (val >= 256)
 			return -EXCEPT_INVALID_LEVEL;
@@ -628,7 +622,7 @@ int led[6];
 int32_t __led(void * env, int32_t argv[], int argc)
 {
 	/* just check for bounds */
-	if ((uint32_t)argv[0] >= 6)
+	if ((uint32_t)ARG(0) >= 6)
 		return -EXCEPT_BAD_ADDR; /* Throw an exception */
 	return 1; /* return the number of return values */
 }	
@@ -636,13 +630,13 @@ int32_t __led(void * env, int32_t argv[], int argc)
 
 int32_t js_led_on(void * env, int32_t argv[], int argc)
 {
-	unsigned int id = argv[0];
+	unsigned int id = ARG(0);
 
 	if (id >= 6)
 		return -EXCEPT_INVALID_LED; /* Throw an exception */
 
 	if (argc > 1) {
-		unsigned int val = argv[1];
+		unsigned int val = ARG(1);
 
 		if (val > 1)
 			return -EXCEPT_INVALID_VALUE;
@@ -654,15 +648,15 @@ int32_t js_led_on(void * env, int32_t argv[], int argc)
 
 	DCC_LOG2(LOG_TRACE, "id=%d val=%d", id, led[id]);
 
-	argv[0] = led[id];
+	ARG(0) = led[id];
 
 	return 1; /* return the number of return values */
 }
 
 int32_t js_led_flash(void * env, int32_t argv[], int argc)
 {
-	unsigned int id = argv[0];
-	unsigned int ms = argv[1];
+	unsigned int id = ARG(0);
+	unsigned int ms = ARG(1);
 
 
 	if (id >= 6)

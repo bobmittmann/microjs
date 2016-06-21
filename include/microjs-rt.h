@@ -79,24 +79,21 @@
 #define OPC_LE       (INTOP + 14)
 #define OPC_GE       (INTOP + 15)
 
-#define OPC_ISP      (3 << 4) /* Add SP */
-#define OPC_LD       (4 << 4)
-#define OPC_ST       (5 << 4)
-#define OPC_PUSHX    (6 << 4) /* Push exception frame */
-#define OPC_JMP      (7 << 4)
-#define OPC_JEQ      (8 << 4)
+#define OPC_ISP      (3 << 4)  /* Add SP */
+#define OPC_LD       (4 << 4)  /* Load */
+#define OPC_ST       (5 << 4)  /* Store */
+#define OPC_PUSHX    (6 << 4)  /* Push exception frame */
+#define OPC_JMP      (7 << 4)  /* Unconditional jump */
+#define OPC_JEQ      (8 << 4)  /* COnditional jump */
+#define OPC_SLD      (9 << 4)  /* SP relative load */
+#define OPC_SST      (10 << 4) /* SP relative store */
 
-#define OPC_RES0     (9 << 4)
-#define OPC_RES1     (10 << 4)
 #define OPC_RES2     (11 << 4)
 #define OPC_RES3     (12 << 4)
 #define OPC_RES4     (13 << 4)
 #define OPC_RES5     (14 << 4)
 #define OPC_RES6     (15 << 4)
 
-#define OPC_IBP      (10 << 4) /* Increment PB */
-#define OPC_LDR      (11 << 4) /* BP relative load */
-#define OPC_STR      (12 << 4) /* BP relative store */
 
 /* --------------------------------------------------------------------------
    Virtual Machine

@@ -42,15 +42,15 @@
 
 #define SIZEOF_WORD ((int)sizeof(int32_t))
 
-#if 0
 #define STACK_POP() *sp++
 #define STACK_ADJUST(_N) sp += (_N)
 #define STACK_PUSH(_X) *(--sp) = (_X)
-#endif
 
+#if 0
 #define STACK_POP() *(--sp)
 #define STACK_ADJUST(_N) sp -= (_N)
 #define STACK_PUSH(_X) *(sp++) = (_X)
+#endif
 
 #if MICROJS_TRACE_ENABLED
 FILE * microjs_vm_tracef = NULL;
@@ -63,14 +63,13 @@ void microjs_vm_init(struct microjs_vm * vm, const struct microjs_rt * rt,
 {
 	vm->data = data;
 	if ((data == stack) || (stack == NULL)) {
-		vm->stack = data + (rt->data_sz / sizeof(int32_t));
+		vm->stack = data + (rt->data_sz +  SIZEOF_WORD - 1) / SIZEOF_WORD;
 	} else {
-//		vm->sp = stack + (rt->stack_sz / sizeof(int32_t));
 		vm->stack = stack;
 	}
 	vm->xp = 0;
 	vm->pc = 0;
-	vm->sp = 0;
+	vm->sp = (rt->stack_sz + SIZEOF_WORD - 1) / SIZEOF_WORD;
 	vm->abort = 0;
 	vm->env = (void *)env;
 	vm->trace_en = 0;
@@ -82,7 +81,7 @@ void microjs_vm_clr_data(struct microjs_vm * vm,
 	int i;
 
 	/* initialize the VM's data memory */
-	for (i = 0; i < rt->data_sz / sizeof(int32_t); ++i)
+	for (i = 0; i < rt->data_sz / SIZEOF_WORD; ++i)
 		vm->data[i] = 0;
 }
 
@@ -90,6 +89,7 @@ void microjs_vm_reset(struct microjs_vm * vm)
 {
 	vm->xp = 0;
 	vm->pc = 0;
+	/* FIXME ... */
 	vm->sp = 0;
 	vm->abort = 0;
 	vm->trace_en = 0;
@@ -116,7 +116,7 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 	int32_t * sp = vm->stack + vm->sp;
 	int32_t * xp = vm->stack + vm->xp;
 	int ret;
-//	int cnt = 0;
+	int cnt = 0;
 
 #if MICROJS_TRACE_ENABLED
 	trace_f = microjs_vm_tracef;
@@ -129,11 +129,12 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 	}
 
 	DCC_LOG3(LOG_TRACE, "begin: SP=0x%04x XP=0x%04x PC=0x%04x", 
-			 (int)((int)(sp - vm->sp) * sizeof(int32_t)),
-			 (int)((int)(xp - vm->sp) * sizeof(int32_t)),
+			 (int)((int)(sp - vm->stack) * SIZEOF_WORD),
+			 (int)((int)(xp - vm->stack) * SIZEOF_WORD),
 			 (int)(pc - code));
 
-	VMTRACEF("SP=0x%04x\n", (int)((int)(sp - data) * sizeof(int32_t)));
+	VMTRACEF("    \tSP=0x%04x\n", (int)((int)(sp - vm->stack) * SIZEOF_WORD));
+	VMTRACEF("    \tXP=0x%04x\n", (int)((int)(xp - vm->stack) * SIZEOF_WORD));
 
 	while (!vm->abort) {
 		unsigned int opc;
@@ -141,6 +142,9 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 		int32_t r0;
 		int32_t r1;
 		int32_t r2;
+
+		if (++cnt == 6000000)
+			break;
 
 		/* fetch */
 		VMTRACEF("%04x\t", (int)(pc - code));
@@ -168,12 +172,12 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 			/* get the exception absolute jump address */
 			r0 = (*pc++ << 4) + opt;
 			/* combine with the current exception frame pointer */
-			r0 |= ((xp - data) << 16);
+			r0 |= ((xp - vm->stack) << 16);
 			STACK_PUSH(r0);
 			xp = sp; /* update the exception pointer */
 			VMTRACEF("PUSHX 0x%04x (XP=0x%04x->0x%04x) \n", 
 						r0 & 0xffff, (r0 >> 16) * SIZEOF_WORD, 
-						(int)(xp - data) * SIZEOF_WORD);
+						(int)(xp - vm->stack) * SIZEOF_WORD);
 			break;
 
 		case (OPC_ISP >> 4):
@@ -186,14 +190,30 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 			r1 = (*pc++ << 4) + opt;
 			r0 = data[r1];
 			STACK_PUSH(r0);
-			VMTRACEF("LD 0x%04x -> %d\n", r1 * SIZEOF_WORD, r0);
+			VMTRACEF("LD [0x%04x] -> %d\n", r1 * SIZEOF_WORD, r0);
 			break;
 
 		case (OPC_ST >> 4):
 			r1 = (*pc++ << 4) + opt;
 			r0 = STACK_POP();
 			data[r1] = r0;
-			VMTRACEF("ST 0x%04x <- %d\n", r1 * SIZEOF_WORD, r0);
+			VMTRACEF("ST [0x%04x] <- %d\n", r1 * SIZEOF_WORD, r0);
+			break;
+
+		case OPC_SLD: /* Stack load */
+			r1 = (*pc++ << 4) + opt;
+			r0 = sp[r1];
+			VMTRACEF("SLD SP[%d] -> %d; %04x\n", r1, r0, 
+					 (unsigned int)(sp - vm->stack));
+			STACK_PUSH(r0);
+			break;
+
+		case OPC_SST: /* Stack store */
+			r1 = (*pc++ << 4) + opt;
+			r0 = STACK_POP();
+			sp[r1] = r0;
+			VMTRACEF("SST SP[%d] <- %d; %04x", r1, r0, 
+					 (unsigned int)(sp - vm->stack));
 			break;
 
 #if MICROJS_FUNCTIONS_ENABLED
@@ -337,14 +357,14 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 
 			case OPC_INC:
 				r0 = STACK_POP();
+				VMTRACEF("INC %d -> %d\n", r0, r0 + 1);
 				STACK_PUSH(r0 + 1);
-				VMTRACEF("INC %d\n", r0);
 				break;
 				
 			case OPC_DEC:
 				r0 = STACK_POP();
+				VMTRACEF("DEC %d -> %d\n", r0, r0 - 1);
 				STACK_PUSH(r0 - 1);
-				VMTRACEF("DEC %d\n", r0);
 				break;
 
 			case OPC_POP:
@@ -376,8 +396,9 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 			case OPC_EXT:
 				r0 = *pc++;
 				r1 = *pc++;
-				VMTRACEF("EXT %d, %d\n", r0, r1);
-				r0 = microjs_extern[r0](&vm->env, sp - r1, r1);
+				VMTRACEF("EXT %d, %d [0x%04x]\n", r0, r1, 
+						 (unsigned int)(sp - vm->stack));
+				r0 = microjs_extern[r0](&vm->env, sp, r1);
 				if (r0 < 0) {
 					DCC_LOG1(LOG_INFO, "exception %d!", r0);
 					r1 = -r0;
@@ -434,11 +455,11 @@ done:
 	vm->xp = (unsigned int)(xp - vm->stack);
 	vm->sp = (unsigned int)(sp - vm->stack);
 
-	VMTRACEF("SP=0x%04x\n", (int)(sp - data) * SIZEOF_WORD);
+	VMTRACEF("SP=0x%04x\n", (int)(sp - vm->stack) * SIZEOF_WORD);
 
 	DCC_LOG3(LOG_TRACE, "end: SP=0x%04x XP=0x%04x PC=0x%04x", 
-			 (int)(vm->sp * sizeof(int32_t)),
-			 (int)(vm->xp * sizeof(int32_t)),
+			 (int)(vm->sp * SIZEOF_WORD),
+			 (int)(vm->xp * SIZEOF_WORD),
 			 (int)(vm->pc));
 
 	return ret;
