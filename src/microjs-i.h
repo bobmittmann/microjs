@@ -39,6 +39,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <debug.h>
 
 #ifdef CONFIG_H
 #include "config.h"

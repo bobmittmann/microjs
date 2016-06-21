@@ -74,8 +74,9 @@ struct token lexer_scan(struct lexer * lex)
 	typ = T_ERR;
 	txt = lex->txt;
 	len = lex->len;
+	off = lex->off;
 
-	for (off = lex->off; off < len; ) {
+	while (off < len) {
 		c = txt[off];
 
 		/* Remove lead blanks */

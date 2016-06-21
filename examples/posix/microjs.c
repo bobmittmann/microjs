@@ -46,6 +46,8 @@
   #include <assert.h>
 #endif
 
+void xxd8(FILE * f, uint32_t  addr, const void * buf, unsigned int count);
+
 int load_script(const char * pathname, char ** cpp, unsigned int * lenp)
 {
 	char * cp;
@@ -53,9 +55,11 @@ int load_script(const char * pathname, char ** cpp, unsigned int * lenp)
 	int ret;
 	int len;
 
-	if ((f = fopen(pathname, "r")) == NULL) {
+	/* Read binary to avoid CR/LF conversion on Windows */
+	if ((f = fopen(pathname, "rb")) == NULL) {
 		fprintf(stderr, "ERROR: %s: open(): %s.\n",
 				__func__, strerror(errno));
+		fflush(stderr);
 		return -1;
 	}
 
@@ -65,6 +69,7 @@ int load_script(const char * pathname, char ** cpp, unsigned int * lenp)
 	if ((cp = realloc(*cpp, *lenp + len)) == NULL) {
 		fprintf(stderr, "ERROR: %s: frealloc(): %s.\n",
 				__func__, strerror(errno));
+		fflush(stderr);
 		fclose(f);
 		return -1;
 	}
@@ -75,10 +80,13 @@ int load_script(const char * pathname, char ** cpp, unsigned int * lenp)
 	fseek(f, 0, SEEK_SET);
 
 	if ((ret = fread(cp, len, 1, f)) != 1) {
-		fprintf(stderr, "ERROR: %s: fread(): %s.\n",
-				__func__, strerror(errno));
-		fclose(f);
-		return ret;
+		if (ferror(f)) {
+			fprintf(stderr, "ERROR: %s: fread(%d): %s.\n",
+					__func__, len, strerror(errno));
+			fflush(stderr);
+			fclose(f);
+			return -1;
+		}
 	}
 
 	fclose(f);
@@ -110,6 +118,8 @@ void version(char * prog)
 
 extern FILE * microjs_vm_tracef;
 
+#define MAX_SCRIPTS 128
+
 int main(int argc,  char **argv)
 {
 	uint8_t vm_code[1024]; /* compiled code */
@@ -133,8 +143,10 @@ int main(int argc,  char **argv)
 	bool outset = false;
 	FILE * ftrace = NULL;
 	char * prog;
-	char * script = NULL;
-	unsigned int len = 0;
+	char * script[MAX_SCRIPTS];
+	char * fname[MAX_SCRIPTS];
+	unsigned int length[MAX_SCRIPTS];
+	unsigned int script_cnt;
 	int verbose = 0;
 	int code_sz;
 	int i = 1;
@@ -187,10 +199,26 @@ int main(int argc,  char **argv)
 			if ((ftrace = fopen(outfname, "w")) == NULL) {
 				fprintf(stderr, "ERROR: creating file \"%s\": %s\n", 
 						outfname, strerror(errno));  
+				fflush(stderr);
 				return 1;
 			}
 		} else
 			ftrace = stdout;
+	}
+
+	/* load all scripts */
+	script_cnt = argc - optind;
+	if (script_cnt > MAX_SCRIPTS)
+		script_cnt = MAX_SCRIPTS;
+
+	for (i = 0; i < script_cnt; ++i) {
+		fname[i] = argv[optind + i];
+		script[i] = NULL;
+		length[i] = 0;
+		printf(" Loading: \"%s\"...\n", fname[i]);
+		fflush(stdout);
+		if (load_script(fname[i], &script[i], &length[i]) < 0)
+			return 1;
 	}
 
 	/* initialize string buffer */
@@ -204,19 +232,18 @@ int main(int argc,  char **argv)
 
 	microjs_sdt_begin(microjs, vm_code, sizeof(vm_code));
 
-	/* load all scripts */
-	for (i = optind; i < argc; ++i) {
-		if (load_script(argv[i], &script, &len) < 0)
+	for (i = 0; i < script_cnt; ++i) {
+		printf(" Compiling: \"%s\"...\n", fname[i]);
+		fflush(stdout);
+		/* compile */
+		if ((err = microjs_compile(microjs, script[i], length[i])) < 0) {
+			microjs_sdt_error(stderr, microjs, err);
+
+			xxd8(stderr, 0, script[i], length[i]);
+			symtab_dump(stderr, symtab);
 			return 1;
+		}
 	}
-
-	/* compile */
-	if ((err = microjs_compile(microjs, script, len)) < 0) {
-		microjs_sdt_error(stderr, microjs, err);
-		symtab_dump(stderr, symtab);
-		return 1;
-	}
-
 
 	/* insert an ABT opcode at the end of the code */
 	if ((code_sz = microjs_sdt_end(microjs)) < 0)

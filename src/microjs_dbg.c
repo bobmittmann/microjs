@@ -243,6 +243,179 @@ int ll_stack_dump(FILE * f, uint8_t * sp, uint8_t * sl)
 	return 0;
 }
 
+void show_hex32(FILE * f, uint32_t  addr, const void * buf, int count)
+{
+	uint32_t base;
+	uint8_t * p;
+	uint32_t val;
+	int i;
+	int j;
+	int n;
+	int c;
+
+	/* 32bits addr alignement */
+	addr &= ~(sizeof(uint32_t) - 1);
+	/* 16 bytes base alignment */
+	base = addr & ~(16 - 1);
+
+	if (base < addr) {
+		j = (addr - base);
+		n = count + j;
+	} else {
+		j = 0;
+		n = count;
+	}
+
+	fprintf(f, "%08x: ", base);
+
+	p = (uint8_t *)buf; 
+	for (i = 0; i < n; i += sizeof(uint32_t)) {
+		if (i < j) {
+			fprintf(f, "________ ");
+		} else {
+			val = p[0] + (p[1] << 8) + (p[2] << 16) + (p[3] << 24);
+			fprintf(f, "%08x ", val);
+			p += sizeof(uint32_t);
+		}
+	}
+
+	for (; i < 16; i += 4) {
+		fprintf(f, "         ");
+	}
+
+	fprintf(f, ": ");
+
+	p = (uint8_t *)buf; 
+	for (i = 0; i < n; i++) {
+		if (i == 8)
+			fprintf(f, " ");
+
+		if (i < j) {
+			fprintf(f, ".");
+		} else {
+			c = *p++;
+			fprintf(f, "%c", ((c < ' ') || (c > 126)) ? '.' : c);
+		}
+	}
+	fprintf(f, "\n");
+}
+
+void show_hex8(FILE * f, uint32_t  addr, const void * buf, unsigned int count)
+{
+	uint32_t base;
+	uint8_t * p;
+	uint32_t val;
+	int i;
+	int j;
+	int n;
+	int c;
+
+	/* 32bits addr alignement */
+	addr &= ~(sizeof(uint32_t) - 1);
+	/* 16 bytes base alignment */
+	base = addr & ~(16 - 1);
+
+	if (base < addr) {
+		j = (addr - base);
+		n = count + j;
+	} else {
+		j = 0;
+		n = count;
+	}
+
+	fprintf(f, "%08x: ", base);
+
+	p = (uint8_t *)buf; 
+	for (i = 0; i < n; ++i) {
+		if (i < j) {
+			fprintf(f, "__");
+		} else {
+			val = p[0];
+			fprintf(f, "%02x ", val);
+			p++;
+		}
+	}
+
+	for (; i < 16; ++i) {
+		fprintf(f, "   ");
+	}
+
+	fprintf(f, ": ");
+
+	p = (uint8_t *)buf; 
+	for (i = 0; i < n; i++) {
+		if (i == 8)
+			fprintf(f, " ");
+
+		if (i < j) {
+			fprintf(f, ".");
+		} else {
+			c = *p++;
+			fprintf(f, "%c", ((c < ' ') || (c > 126)) ? '.' : c);
+		}
+	}
+	fprintf(f, "\n");
+}
+
+void xxd8(FILE * f, uint32_t addr, const void * ptr, unsigned int count)
+{
+	uint8_t * buf = (uint8_t *)ptr;
+	unsigned int base;
+	unsigned int n;
+
+	n = count;
+	addr &= ~(sizeof(uint32_t) - 1);
+	base = addr & ~(16 - 1);
+	if (base < addr) {
+		n = (base + 16) - addr;
+	} else {
+		n = 16;
+	}
+
+	do {
+		if (count < n)
+			n = count;
+
+		show_hex8(f, addr, buf, n);
+		addr += n;
+		buf += n;
+		count -= n;
+		n = 16;
+	} while (count > 0);
+
+}
+
+void xxd32(FILE * f, uint32_t addr, const void * ptr, unsigned int count)
+{
+	uint8_t buf[16];
+	unsigned int base;
+	unsigned int n;
+
+	n = (count + (sizeof(uint32_t) - 1)) & ~(sizeof(uint32_t) - 1);
+
+	addr &= ~(sizeof(uint32_t) - 1);
+	base = addr & ~(16 - 1);
+	if (base < addr) {
+		n = (base + 16) - addr;
+	} else {
+		n = 16;
+	}
+
+	do {
+		if (count < n)
+			n = count;
+
+		memcpy(buf, (void *)ptr, n);
+
+		show_hex32(f, addr, buf, n);
+		addr += n;
+		ptr += n;
+		count -= n;
+		n = 16;
+	} while (count > 0);
+
+}
+
 #else
 
 int ll_stack_dump(FILE * f, uint8_t * sp, uint8_t * sl)

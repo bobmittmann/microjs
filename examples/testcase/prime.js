@@ -38,7 +38,6 @@ printf("----------------------\n");
 
 var x = j * 10000 / cnt;
 
-printf("%d out of %d are prime, %d.%d %%.\n", 
-	   j, cnt, x / 100, x % 100);
+printf("%d out of %d are prime, %d.%d %%.\n", j, cnt, x / 100, x % 100);
 
 printf("---\n\n");
