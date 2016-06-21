@@ -27,3 +27,15 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
+*.Po
+*.o
+*~
+examples/posix/aclocal.m4
+examples/posix/config.h.in
+examples/posix/config.h
+examples/posix/Makefile.in
+examples/posix/stamp-h1
+examples/posix/Makefile
+examples/posix/config.status
+.dirstamp
+examples/posix/configure

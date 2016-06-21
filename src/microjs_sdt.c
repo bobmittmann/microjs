@@ -39,11 +39,13 @@
 #define SIGNEXT4BIT(_X) ({ struct { int32_t x: 4; } s; \
 						  s.x = (_X); (int32_t)s.x; })
 
-static int tgt_alloc32(struct microjs_sdt * microjs)
+#define STACK_TOP 8192
+
+static int tgt_data_alloc32(struct microjs_sdt * microjs)
 {
 	unsigned int addr;
 
-	/* ensure memory alignment */
+	/* ensure memory alignment - round up */
 	addr = (microjs->data_pos + SIZEOF_WORD - 1) & ~(SIZEOF_WORD - 1);
 
 	microjs->data_pos = addr + SIZEOF_WORD;
@@ -55,6 +57,23 @@ static int tgt_alloc32(struct microjs_sdt * microjs)
 
 	return addr;
 }
+
+#if 0
+static int tgt_stack_alloc32(struct microjs_sdt * microjs)
+{
+	unsigned int addr;
+
+	/* update stack usage */
+	microjs->stack_pos += SIZEOF_WORD;
+
+	if (microjs->stack_pos > microjs->tab->rt.stack_sz)
+		microjs->tab->rt.stack_sz = microjs->stack_pos;
+
+	addr = STACK_TOP - microjs->stack_pos; 
+
+	return addr;
+}
+#endif
 
 static int tgt_stack_push(struct microjs_sdt * microjs)
 {
@@ -256,8 +275,8 @@ int op_var_decl(struct microjs_sdt * microjs)
 	}
 #endif
 
-	if ((addr = tgt_alloc32(microjs)) < 0) {
-		DCC_LOG(LOG_INFO, "tgt_alloc32() failed!");
+	if ((addr = tgt_data_alloc32(microjs)) < 0) {
+		DCC_LOG(LOG_INFO, "tgt_data_alloc32() failed!");
 		return addr;
 	}
 
@@ -359,10 +378,8 @@ int op_object_get(struct microjs_sdt * microjs)
 	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
 		return ret;
 
-	if ((xid = lib_lookup(microjs->libdef, tmp.s, tmp.len)) < 0) {
-		DCC_LOG(LOG_WARNING, "extern unknown!");
-		return -ERR_EXTERN_UNKNOWN;
-	}
+	if ((xid = lib_lookup(microjs->libdef, tmp.s, tmp.len)) < 0)
+		return xid;
 
 	xdef = lib_extern_get(microjs->libdef, xid);
 
@@ -380,7 +397,7 @@ int op_object_get(struct microjs_sdt * microjs)
 		/* XXX: the object instance accepts no argument 
 		   and return 1 value. This call could be optimized */
 		TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-			   sym_extern_name(microjs->libdef, xid), 1);
+			   lib_extern_name(microjs->libdef, xid), 1);
 		microjs->code[microjs->pc++] = OPC_EXT;
 		microjs->code[microjs->pc++] = xid; /* external call number */
 		microjs->code[microjs->pc++] = 0; /* stack size (arguments) */
@@ -411,7 +428,7 @@ int op_array_xlat(struct microjs_sdt * microjs)
 		return ret;
 
 	if ((xid = lib_lookup(microjs->libdef, tmp.s, tmp.len)) < 0)
-		return -ERR_EXTERN_UNKNOWN;
+		return xid;
 
 	xdef = lib_extern_get(microjs->libdef, xid);
 
@@ -443,7 +460,7 @@ int op_array_xlat(struct microjs_sdt * microjs)
 		   and return 1 value. This call could be optimized,
 		 since the stack size is allways one at the entry end exit! */
 		TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-			   sym_extern_name(microjs->libdef, xid), 1);
+			   lib_extern_name(microjs->libdef, xid), 1);
 		microjs->code[microjs->pc++] = OPC_EXT;
 		microjs->code[microjs->pc++] = xid; /* external call number */
 		microjs->code[microjs->pc++] = 1; /* stack size (arguments) */
@@ -495,7 +512,7 @@ static int class_member_pop(struct microjs_sdt * microjs,
 
 	if ((xid = lib_member_lookup(microjs->libdef, cld.cid, 
 								 tmp.s, tmp.len)) < 0)
-		return -ERR_EXTERN_UNKNOWN;
+		return xid;
 
 	xdef = lib_extern_get(microjs->libdef, xid);
 
@@ -529,7 +546,7 @@ int op_attr_eval(struct microjs_sdt * microjs)
 	   should receive 1 prameter: (object_id) and return the 
 	   attribute value. */
 	TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-		   sym_extern_name(microjs->libdef, xid), 1);
+		   lib_extern_name(microjs->libdef, xid), 1);
 	microjs->code[microjs->pc++] = OPC_EXT;
 	microjs->code[microjs->pc++] = xid; /* external call number */
 	microjs->code[microjs->pc++] = 1; /* stack size (arguments) */
@@ -557,7 +574,7 @@ int op_array_eval(struct microjs_sdt * microjs)
 	   should receive 2 prameter: (object_id, array_idx) and return the 
 	   attribute value. */
 	TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-		   sym_extern_name(microjs->libdef, xid), 1);
+		   lib_extern_name(microjs->libdef, xid), 1);
 	microjs->code[microjs->pc++] = OPC_EXT;
 	microjs->code[microjs->pc++] = xid; /* external call number */
 	microjs->code[microjs->pc++] = 2; /* stack size (arguments) */
@@ -590,7 +607,7 @@ int op_attr_assign(struct microjs_sdt * microjs)
 	/* XXX: This call could be optimized, attribute assignement functions,
 	   should receive 2 prameters: (object_id, attr_val) and return nothing */
 	TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-		   sym_extern_name(microjs->libdef, xid), 1);
+		   lib_extern_name(microjs->libdef, xid), 1);
 	microjs->code[microjs->pc++] = OPC_EXT;
 	microjs->code[microjs->pc++] = xid; /* external call number */
 	microjs->code[microjs->pc++] = 2; /* stack size (arguments) */
@@ -623,7 +640,7 @@ int op_array_assign(struct microjs_sdt * microjs)
 	   should receive 2 prameters: (object_id, array_idx, attr_val) 
 	   and return nothing */
 	TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-		   sym_extern_name(microjs->libdef, xid), 1);
+		   lib_extern_name(microjs->libdef, xid), 1);
 	microjs->code[microjs->pc++] = OPC_EXT;
 	microjs->code[microjs->pc++] = xid; /* external call number */
 	microjs->code[microjs->pc++] = 3; /* stack size (arguments) */
@@ -676,7 +693,7 @@ int op_function_lookup(struct microjs_sdt * microjs)
 		return ret;
 
 	if ((xid = lib_lookup(microjs->libdef, tmp.s, tmp.len)) < 0)
-		return -ERR_EXTERN_UNKNOWN;
+		return xid;
 
 	xdef = lib_extern_get(microjs->libdef, xid);
 
@@ -719,14 +736,17 @@ int op_call(struct microjs_sdt * microjs)
 
 	if (call.argcnt < call.argmin)
 		return -ERR_ARG_MISSING;
-	if (call.argcnt > call.argmax)
+	if (call.argcnt > call.argmax) {
+		DCC_LOG2(LOG_WARNING, " call.argcnt(%d) > call.argmax(%d)",
+				 call.argcnt, call.argmax);
 		return -ERR_TOO_MANY_ARGS;
+	}
 
 #if MICROJS_OPTIMIZATION_ENABLED
 	microjs->spc = microjs->pc; /* save code pointer */
 #endif
 	TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-		   sym_extern_name(microjs->libdef, call.xid), call.argcnt);
+		   lib_extern_name(microjs->libdef, call.xid), call.argcnt);
 	microjs->code[microjs->pc++] = OPC_EXT;
 	microjs->code[microjs->pc++] = call.xid; /* external call number */
 	microjs->code[microjs->pc++] = call.argcnt; /* stack size */

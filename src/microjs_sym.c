@@ -398,7 +398,7 @@ int lib_lookup(const struct ext_libdef * libdef,
 	}
 
 	DCC_LOG(LOG_WARNING, "external symbol not found!");
-	return -1;
+	return -ERR_EXTERN_UNKNOWN;
 }
 
 int lib_member_lookup(const struct ext_libdef * libdef, 
