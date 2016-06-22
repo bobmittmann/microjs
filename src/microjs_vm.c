@@ -182,8 +182,11 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 
 		case (OPC_ISP >> 4):
 			r0 = SIGNEXT12BIT((*pc++ << 4) + opt);
+			VMTRACEF("ISP %d; SP=0x%04x\n", r0 * SIZEOF_WORD, 
+					 (int)(sp - vm->stack) * SIZEOF_WORD);
 			STACK_ADJUST(r0);
-			VMTRACEF("ISP %d\n", r0);
+			VMTRACEF(".stackfix(%d) SP=0x%04x\n", r0 * SIZEOF_WORD, 
+					 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
 			break;
 
 		case (OPC_LD >> 4):
@@ -219,7 +222,8 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 		case (OPC_I4 >> 4): 
 			r0 = SIGNEXT4BIT(opt);
 			STACK_PUSH(r0);
-			VMTRACEF("I4 %d\n", r0);
+			VMTRACEF("I4 %d; SP=0x%04x\n", r0,
+					 (int)(sp - vm->stack) * SIZEOF_WORD);
 			break;
 
 		case (INTOP >> 4):
@@ -375,8 +379,8 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 			case OPC_EXT:
 				r0 = *pc++;
 				r1 = *pc++;
-				VMTRACEF("EXT %d, %d [0x%04x]\n", r0, r1, 
-						 (unsigned int)(sp - vm->stack));
+				VMTRACEF("EXT %d, %d; SP=0x%04x\n", r0, r1, 
+						 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
 				r0 = microjs_extern[r0](&vm->env, sp, r1);
 				if (r0 < 0) {
 					DCC_LOG1(LOG_INFO, "exception %d!", r0);
@@ -385,6 +389,8 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 				}
 				/* adjust the stack pointer */
 				STACK_ADJUST(r1 - r0);
+				VMTRACEF(".stackfix(%d) SP=0x%04x\n", (r1 - r0) * SIZEOF_WORD, 
+						 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
 				break;
 
 

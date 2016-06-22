@@ -303,7 +303,7 @@ int op_blk_close(struct microjs_sdt * microjs)
 #endif
 
 	/* Backpatch the stack */
-	offs = pos - microjs->stack_pos;
+	offs = (pos - microjs->stack_pos) >> 2;
 	if (offs != 0) {
 #if 0
 		TRACEF("\tfix %04x -> ISP -%04x (.L%d)\n", ref.addr, 
@@ -311,7 +311,7 @@ int op_blk_close(struct microjs_sdt * microjs)
 		microjs->code[ref.addr ] += (-offs) & 0x0f;
 		microjs->code[ref.addr + 1] = (-offs) >> 4;
 #endif
-		TRACEF("%04x\tISP %04x\n", microjs->pc, offs);
+		TRACEF("%04x\tISP %04x\n", microjs->pc, offs << 2);
 		/* Insert the opcode, the address will be backpatched alter */
 		microjs->code[microjs->pc++] = OPC_ISP + (offs & 0x0f);
 		microjs->code[microjs->pc++] = offs >> 4;
