@@ -27,7 +27,7 @@ static const struct tr_pair predict_vec[] = {
 	{ 43,  9}, 
 	/*  56 (var_list1) */
 	{  0,  7}, {  2,  8}, {  3,  7}, 
-	/*  57 (var_assign_opt) */
+	/*  57 (var_init_opt) */
 	{  0, 10}, {  2, 10}, {  3, 10}, { 16, 11}, 
 	/*  58 (exp) */
 	{  6, 32}, { 13, 32}, { 21, 32}, { 35, 32}, { 39, 32}, { 43, 32}, 
@@ -211,11 +211,11 @@ static const uint8_t rule_vec[] = {
 	/*  8:var_list1(2) -> */
 	T_COMMA, N_VAR_LIST, 
 	/*  9:var(4) -> */
-	T_ID, A_OP_VAR_DECL, A_OP_PUSH_TMP, N_VAR_ASSIGN_OPT, 
-	/* 10:var_assign_opt(1) -> */
+	T_ID, A_OP_VAR_DECL, A_OP_PUSH_TMP, N_VAR_INIT_OPT, 
+	/* 10:var_init_opt(1) -> */
 	A_OP_POP_TMP, 
-	/* 11:var_assign_opt(3) -> */
-	T_EQUALS, N_EXP, A_OP_VAR_ASSIGN, 
+	/* 11:var_init_opt(3) -> */
+	T_EQUALS, N_EXP, A_OP_VAR_INIT, 
 	/* 12:assign_or_call1(3) -> */
 	T_EQUALS, N_EXP, A_OP_VAR_ASSIGN, 
 	/* 13:assign_or_call1(2) -> */
@@ -391,7 +391,7 @@ static const uint8_t rule_vec[] = {
 	/* 98:catch_opt(1) -> */
 	A_OP_TRY_END, 
 	/* 99:catch_opt(14) -> */
-	T_CATCH, A_OP_CATCH, A_OP_BLK_OPEN, T_LPAREN, T_ID, A_OP_VAR_DECL, A_OP_PUSH_TMP, A_OP_VAR_ASSIGN, T_RPAREN, T_LBRACE, N_STAT_LIST, T_RBRACE, A_OP_BLK_CLOSE, A_OP_CATCH_END, 
+	T_CATCH, A_OP_CATCH, A_OP_BLK_OPEN, T_LPAREN, T_ID, A_OP_VAR_DECL, A_OP_PUSH_TMP, A_OP_VAR_INIT, T_RPAREN, T_LBRACE, N_STAT_LIST, T_RBRACE, A_OP_BLK_CLOSE, A_OP_CATCH_END, 
 };
 /* 258 bytes */
 
@@ -620,7 +620,7 @@ const const char * const microjs_ll_sym[] = {
  	"var_list",
  	"var",
  	"var_list1",
- 	"var_assign_opt",
+ 	"var_init_opt",
  	"exp",
  	"assign_or_call1",
  	"function_call",
@@ -659,6 +659,7 @@ const const char * const microjs_ll_sym[] = {
  	"op_var_decl",
  	"op_push_tmp",
  	"op_pop_tmp",
+ 	"op_var_init",
  	"op_var_assign",
  	"op_ret_discard",
  	"op_array_xlat",

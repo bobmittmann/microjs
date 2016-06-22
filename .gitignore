@@ -39,3 +39,4 @@ examples/posix/Makefile
 examples/posix/config.status
 .dirstamp
 examples/posix/configure
+*.swp

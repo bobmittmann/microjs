@@ -116,7 +116,7 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 	int32_t * sp = vm->stack + vm->sp;
 	int32_t * xp = vm->stack + vm->xp;
 	int ret;
-	int cnt = 0;
+//	int cnt = 0;
 
 #if MICROJS_TRACE_ENABLED
 	trace_f = microjs_vm_tracef;
@@ -143,8 +143,8 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 		int32_t r1;
 		int32_t r2;
 
-		if (++cnt == 6000000)
-			break;
+//		if (++cnt == 600)
+//			break;
 
 		/* fetch */
 		VMTRACEF("%04x\t", (int)(pc - code));
@@ -200,43 +200,22 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 			VMTRACEF("ST [0x%04x] <- %d\n", r1 * SIZEOF_WORD, r0);
 			break;
 
-		case OPC_SLD: /* Stack load */
+		case (OPC_SLD >> 4): /* Stack load */
 			r1 = (*pc++ << 4) + opt;
 			r0 = sp[r1];
-			VMTRACEF("SLD SP[%d] -> %d; %04x\n", r1, r0, 
-					 (unsigned int)(sp - vm->stack));
+			VMTRACEF("SLD SP[%04x] -> %d; 0x%04x\n", r1 * SIZEOF_WORD, r0, 
+					 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
 			STACK_PUSH(r0);
 			break;
 
-		case OPC_SST: /* Stack store */
+		case (OPC_SST >> 4): /* Stack store */
 			r1 = (*pc++ << 4) + opt;
 			r0 = STACK_POP();
 			sp[r1] = r0;
-			VMTRACEF("SST SP[%d] <- %d; %04x", r1, r0, 
-					 (unsigned int)(sp - vm->stack));
+			VMTRACEF("SST SP[%04x] <- %d; 0x%04x\n", r1 * SIZEOF_WORD, r0, 
+					 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
 			break;
 
-#if MICROJS_FUNCTIONS_ENABLED
-		case OPC_LDR:
-			r1 = *pc++;
-			r0 = bp[r1];
-			STACK_PUSH(r0);
-			VMTRACEF("LDR 0x%04x -> %d\n", r1 * SIZEOF_WORD, r0);
-			break;
-
-		case OPC_STR:
-			r1 = *pc++;
-			r0 = STACK_POP();
-			bp[r1] = r0;
-			VMTRACEF("STR 0x%04x <- %d\n", r1 * SIZEOF_WORD, r0);
-			break;
-
-		case OPC_IBP:
-			r0 = (int8_t)*pc++;
-			bp += r0;
-			VMTRACEF("ISP %d\n", r0);
-			break;
-#endif
 		case (OPC_I4 >> 4): 
 			r0 = SIGNEXT4BIT(opt);
 			STACK_PUSH(r0);

@@ -18,6 +18,7 @@ for (i = 10, j = 0; i < 40; i = i + 1, j = j + 2) {
 }
 
 for (i = 0; i < 4; i = i + 1) {
+	var j, k;
 	for (j = 0; j < 4; j = j + 1) {
 		for (k = 0; k < 4; k = k + 1) {
 			print(i, j, k);

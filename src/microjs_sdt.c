@@ -58,22 +58,21 @@ static int tgt_data_alloc32(struct microjs_sdt * microjs)
 	return addr;
 }
 
-#if 0
 static int tgt_stack_alloc32(struct microjs_sdt * microjs)
 {
 	unsigned int addr;
-
+#if 0
 	/* update stack usage */
 	microjs->stack_pos += SIZEOF_WORD;
 
 	if (microjs->stack_pos > microjs->tab->rt.stack_sz)
 		microjs->tab->rt.stack_sz = microjs->stack_pos;
-
-	addr = STACK_TOP - microjs->stack_pos; 
+#endif
+	addr = microjs->stack_pos; 
+	DCC_LOG1(LOG_TRACE, "addr=%d", addr);
 
 	return addr;
 }
-#endif
 
 static int tgt_stack_push(struct microjs_sdt * microjs)
 {
@@ -215,8 +214,32 @@ int op_push_tmp(struct microjs_sdt * microjs)
 
 int op_pop_tmp(struct microjs_sdt * microjs)
 {
+	struct sym_obj * obj;
+	struct sym_tmp tmp;
+	int ret;
+
 	DCC_LOG(LOG_INFO, " >>> ...");
-	return sym_tmp_pop(microjs->tab, NULL);
+
+	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
+		return ret;
+
+	DCC_LOG1(LOG_INFO, "tmp.len=%d", tmp.len);
+
+	if ((obj = sym_obj_lookup(microjs->tab, tmp.s, tmp.len)) == NULL)
+		return -ERR_VAR_UNKNOWN;
+
+	if ((obj->flags & SYM_OBJ_GLOBAL) == 0) {
+		/* Alloc and initialize local variable */
+#if MICROJS_OPTIMIZATION_ENABLED
+		microjs->spc = microjs->pc; /* save code pointer */
+#endif
+		TRACEF("%04x\tI4 %d\n", microjs->pc, 0);
+		microjs->code[microjs->pc++] = OPC_I4 + 0;
+		return tgt_stack_push(microjs);
+	}
+//	return sym_tmp_pop(microjs->tab, NULL);
+
+	return 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -225,21 +248,76 @@ int op_pop_tmp(struct microjs_sdt * microjs)
 
 int op_blk_open(struct microjs_sdt * microjs) 
 {
+//	struct sym_ref ref;
+	int ret;
+
 	/* save the heap state */
-	sym_addr_push(microjs->tab, &microjs->data_pos);
+//	sym_addr_push(microjs->tab, &microjs->data_pos);
+
+#if 0
+	/* save current location on a temporary reference */
+#if MICROJS_TRACE_ENABLED
+	ref.lbl = sym_lbl_next(microjs->tab);
+#endif
+	ref.addr = microjs->pc;
+	TRACEF(".L%d:\n%04x\tISP xxxx\n", ref.lbl, microjs->pc);
+	/* Insert the opcode, the address will be backpatched alter */
+	microjs->code[microjs->pc] = OPC_ISP;
+	microjs->pc += 2;
+
+	if ((ret = sym_ref_push(microjs->tab, &ref)) < 0)
+		return ret;
+#endif
+
+	TRACEF("{    \tSP=0x%04x\n", microjs->stack_pos);
+
+	if ((ret = sym_addr_push(microjs->tab, &microjs->stack_pos)) < 0)
+		return ret;
+
 	/* save the stack frame */
 	return sym_sf_push(microjs->tab);
 }
 
 int op_blk_close(struct microjs_sdt * microjs) 
 {
+//	struct sym_ref ref;
+	int pos;
+	int offs;
 	int ret;
+
 	/* restore the stack frame */
 	if ((ret = sym_sf_pop(microjs->tab)) < 0)
 		return ret;
 
-	/* restore the heap state */
-	return sym_addr_pop(microjs->tab, &microjs->data_pos);
+	TRACEF("}    \tSP=0x%04x\n", microjs->stack_pos);
+
+	pos = microjs->stack_pos;
+
+	/* restore the stack state */
+	if ((ret = sym_addr_pop(microjs->tab, &microjs->stack_pos)) < 0)
+		return ret;
+#if 0
+	/* get temporary reference */
+	if ((ret = sym_ref_pop(microjs->tab, &ref)) < 0)
+		return ret;
+#endif
+
+	/* Backpatch the stack */
+	offs = pos - microjs->stack_pos;
+	if (offs != 0) {
+#if 0
+		TRACEF("\tfix %04x -> ISP -%04x (.L%d)\n", ref.addr, 
+			   offs, ref.lbl);
+		microjs->code[ref.addr ] += (-offs) & 0x0f;
+		microjs->code[ref.addr + 1] = (-offs) >> 4;
+#endif
+		TRACEF("%04x\tISP %04x\n", microjs->pc, offs);
+		/* Insert the opcode, the address will be backpatched alter */
+		microjs->code[microjs->pc++] = OPC_ISP + (offs & 0x0f);
+		microjs->code[microjs->pc++] = offs >> 4;
+	}
+
+	return 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -266,16 +344,12 @@ int op_var_decl(struct microjs_sdt * microjs)
 		return -ERR_OBJ_NEW_FAIL;
 	}
 
-#if MICROJS_FUNCTIONS_ENABLED
-#error "functions not implemented!!!" 
 	if ((obj->flags & SYM_OBJ_GLOBAL) == 0) {
-		/* FIXME stack allocation */
-		DCC_LOG(LOG_INFO, "stack allocation!!!");
-		return 0;
-	}
-#endif
-
-	if ((addr = tgt_data_alloc32(microjs)) < 0) {
+		if ((addr = tgt_stack_alloc32(microjs)) < 0) {
+			DCC_LOG(LOG_INFO, "tgt_stack_alloc32() failed!");
+			return addr;
+		}
+	} else if ((addr = tgt_data_alloc32(microjs)) < 0) {
 		DCC_LOG(LOG_INFO, "tgt_data_alloc32() failed!");
 		return addr;
 	}
@@ -297,7 +371,6 @@ int op_var_eval(struct microjs_sdt * microjs)
 {
 	struct sym_obj * obj;
 	struct sym_tmp tmp;
-	uint16_t addr;
 	int ret;
 
 	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
@@ -310,22 +383,26 @@ int op_var_eval(struct microjs_sdt * microjs)
 	microjs->spc = microjs->pc;        /* save code pointer */
 #endif
 
-	addr = (obj->addr >> 2) & 0x0fff;
-#if MICROJS_FUNCTIONS_ENABLED
 	if ((obj->flags & SYM_OBJ_GLOBAL) == 0) {
-		TRACEF("%04x\tLDR \'%s\" (%04x)\n", microjs->pc, 
-			   sym_obj_name(microjs->tab, obj), obj->addr);
-		microjs->code[microjs->pc++] = OPC_LDR;
-		microjs->code[microjs->pc++] = obj->addr >> 2;
-		return 0;
-	} 
-#endif
+		unsigned int offs;
 
-	TRACEF("%04x\tLD \'%s\" (%04x)\n", microjs->pc, 
-		   sym_obj_name(microjs->tab, obj), obj->addr);
-	microjs->code[microjs->pc++] = OPC_LD + (addr & 0x0f);
-	microjs->code[microjs->pc++] = addr >> 4;
+		offs = ((microjs->stack_pos - obj->addr - 4) >> 2) & 0x0fff; 
+		TRACEF("%04x\tSLD \'%s\" SP[%04x]\n", microjs->pc, 
+			   sym_obj_name(microjs->tab, obj), offs << 2);
+		microjs->code[microjs->pc++] = OPC_SLD + (offs & 0x0f);
+		microjs->code[microjs->pc++] = offs >> 4;
+	} else { 
+		unsigned int addr;
 
+		addr = (obj->addr >> 2) & 0x0fff;
+		TRACEF("%04x\tLD \'%s\" [%04x]\n", microjs->pc, 
+			   sym_obj_name(microjs->tab, obj), addr << 2);
+		microjs->code[microjs->pc++] = OPC_LD + (addr & 0x0f);
+		microjs->code[microjs->pc++] = addr >> 4;
+	}
+
+	/* pushing one value into stack, 
+	   inform the stack evaluator. */ 
 	return tgt_stack_push(microjs);
 }
 
@@ -333,7 +410,6 @@ int op_var_assign(struct microjs_sdt * microjs)
 {
 	struct sym_obj * obj;
 	struct sym_tmp tmp;
-	uint16_t addr;
 	int ret;
 
 	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
@@ -348,24 +424,60 @@ int op_var_assign(struct microjs_sdt * microjs)
 	microjs->spc = microjs->pc;        /* save code pointer */
 #endif
 
-	addr = (obj->addr >> 2) & 0x0fff;
-#if MICROJS_FUNCTIONS_ENABLED
-	if ((obj->flags & SYM_OBJ_GLOBAL) == 0) {
-		TRACEF("%04x\tSTR \"%s\" (%04x)\n", microjs->pc, 
-			   sym_obj_name(microjs->tab, obj), obj->addr);
-		microjs->code[microjs->pc++] = OPC_STR;
-		microjs->code[microjs->pc++] = obj->addr >> 2;
-		return 0;
-	}
-#endif
+	if ((obj->flags & SYM_OBJ_GLOBAL)) {
+		unsigned int addr;
 
-	TRACEF("%04x\tST \"%s\" (%04x)\n", microjs->pc, 
-		   sym_obj_name(microjs->tab, obj), obj->addr);
-	microjs->code[microjs->pc++] = OPC_ST + (addr & 0x0f);
-	microjs->code[microjs->pc++] = addr >> 4;
+		addr = (obj->addr >> 2) & 0x0fff;
+		TRACEF("%04x\tST \"%s\" [%04x]\n", microjs->pc, 
+			   sym_obj_name(microjs->tab, obj), addr << 2);
+		microjs->code[microjs->pc++] = OPC_ST + (addr & 0x0f);
+		microjs->code[microjs->pc++] = addr >> 4;
+	} else {
+		unsigned int offs;
+
+		offs = ((microjs->stack_pos - obj->addr - 8) >> 2) & 0x0fff; 
+		TRACEF("%04x\tSST \"%s\" SP[%04x]\n", microjs->pc, 
+			   sym_obj_name(microjs->tab, obj), offs << 2);
+		microjs->code[microjs->pc++] = OPC_SST + (offs & 0x0f);
+		microjs->code[microjs->pc++] = offs >> 4;
+	}
 
 	return tgt_stack_pop(microjs);
 }
+
+int op_var_init(struct microjs_sdt * microjs)
+{
+	struct sym_obj * obj;
+	struct sym_tmp tmp;
+	int ret;
+
+	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
+		return ret;
+
+	DCC_LOG1(LOG_INFO, "tmp.len=%d", tmp.len);
+
+	if ((obj = sym_obj_lookup(microjs->tab, tmp.s, tmp.len)) == NULL)
+		return -ERR_VAR_UNKNOWN;
+
+#if MICROJS_OPTIMIZATION_ENABLED
+	microjs->spc = microjs->pc;        /* save code pointer */
+#endif
+
+	if ((obj->flags & SYM_OBJ_GLOBAL)) {
+		unsigned int addr;
+
+		addr = (obj->addr >> 2) & 0x0fff;
+		TRACEF("%04x\tST \"%s\" [%04x]\n", microjs->pc, 
+			   sym_obj_name(microjs->tab, obj), addr << 2);
+		microjs->code[microjs->pc++] = OPC_ST + (addr & 0x0f);
+		microjs->code[microjs->pc++] = addr >> 4;
+	
+		return tgt_stack_pop(microjs);
+	}
+
+	return 0;
+}
+
 
 int op_object_get(struct microjs_sdt * microjs)
 {
@@ -836,7 +948,8 @@ int op_equ(struct microjs_sdt * microjs)
 		microjs->pc = microjs->spc; /* rollback */
 		TRACEF("%04x\tNOT (optimizing EQ 0)\n", microjs->pc);
 		microjs->code[microjs->pc++] = OPC_NOT;
-		return 0;
+		/* Remove the value (0) from the stack */
+		return tgt_stack_pop(microjs);
 	} 
 	microjs->spc = microjs->pc; /* save code pointer */
 #endif
@@ -1270,6 +1383,10 @@ int op_throw(struct microjs_sdt * microjs)
 int op_if_cond(struct microjs_sdt * microjs)
 {
 	struct sym_ref ref;
+	int ret;
+
+	if ((ret = tgt_stack_pop(microjs)) < 0)
+		return ret;
 
 #if MICROJS_OPTIMIZATION_ENABLED
 	microjs->spc = microjs->pc; /* save code pointer */
@@ -1350,6 +1467,9 @@ int op_while_cond(struct microjs_sdt * microjs)
 	if ((ret = sym_wld_pop(microjs->tab, &wld)) < 0)
 		return ret;
 
+	if ((ret = tgt_stack_pop(microjs)) < 0)
+		return ret;
+
 #if MICROJS_OPTIMIZATION_ENABLED
 	microjs->spc = microjs->pc; /* save code pointer */
 #endif
@@ -1422,6 +1542,9 @@ int op_for_cond(struct microjs_sdt * microjs)
 	int ret;
 
 	if ((ret = sym_fld_pop(microjs->tab, &fld)) < 0)
+		return ret;
+
+	if ((ret = tgt_stack_pop(microjs)) < 0)
 		return ret;
 
 	/* Conditional jump to the body */
@@ -1514,6 +1637,7 @@ int (* const op[])(struct microjs_sdt * microjs) = {
  	[ACTION(A_OP_POP_TMP)] = op_pop_tmp,
  	[ACTION(A_OP_VAR_DECL)] = op_var_decl,
  	[ACTION(A_OP_VAR_EVAL)] = op_var_eval,
+ 	[ACTION(A_OP_VAR_INIT)] = op_var_init,
  	[ACTION(A_OP_VAR_ASSIGN)] = op_var_assign,
  	[ACTION(A_OP_ARRAY_XLAT)] = op_array_xlat,
  	[ACTION(A_OP_OBJECT_GET)] = op_object_get,

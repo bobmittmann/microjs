@@ -7,17 +7,20 @@ srand(time()); // initialize random number generator
 
 printf("----------------------\n");
 
+var n;
+var prime;
+var i;
+var m;
+
 for (j = 0; j < 100; ) {
-	var n = rand();
-	var prime;
+	n = rand();
+
 	if (n <= 3) {
 		prime = n > 1;
 	} else {
 		if (n % 2 == 0 || n % 3 == 0) {
 			prime = false;
 		} else {
-			var i;
-			var m;
 			m = sqrt(n) + 1;
 			prime = true;
 			for (i = 5; (i < m) && (prime); i = i + 6) {

@@ -22,11 +22,11 @@ var_list1 		:
 				| ',' var_list
 				;
 
-var				: ID { op_var_decl, op_push_tmp } var_assign_opt
+var				: ID { op_var_decl, op_push_tmp } var_init_opt
 				;
 
-var_assign_opt  : { op_pop_tmp }
-				| '=' exp { op_var_assign }
+var_init_opt    : { op_pop_tmp }
+				| '=' exp { op_var_init }
 				;
 
 assign_or_call1	: '=' exp { op_var_assign }
@@ -210,7 +210,7 @@ else_opt		:
 				;
 
 catch_opt		: { op_try_end }
-				| "catch" { op_catch, op_blk_open } '(' ID { op_var_decl, op_push_tmp, op_var_assign } ')' '{' stat_list '}' { op_blk_close, op_catch_end }
+				| "catch" { op_catch, op_blk_open } '(' ID { op_var_decl, op_push_tmp, op_var_init } ')' '{' stat_list '}' { op_blk_close, op_catch_end }
 				;
 
 
