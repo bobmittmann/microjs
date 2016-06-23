@@ -193,6 +193,7 @@ struct symtab {
 	uint16_t bp;
 	uint16_t fp;
 	uint16_t top;
+	uint16_t cnt; /* scope defined general counter */
 #if MICROJS_TRACE_ENABLED
 	uint16_t tmp_lbl;
 #endif
@@ -269,6 +270,7 @@ struct sym_call {
 struct sym_sf {
 	uint16_t prev;
 	uint16_t bp;
+	uint16_t cnt;
 };
 
 struct tabst {
@@ -335,6 +337,8 @@ void sym_pick(struct symtab * tab, int pos, void * ptr,  unsigned int len);
 int sym_sf_push(struct symtab * tab);
 
 int sym_sf_pop(struct symtab * tab);
+
+void sym_sf_get(struct symtab * tab, struct sym_sf * sf);
 
 /* --------------------------------------------------------------------------
    Push/Pop addresses from/to stack

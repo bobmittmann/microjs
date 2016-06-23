@@ -189,11 +189,16 @@ int sym_sf_push(struct symtab * tab)
 	struct sym_sf sf;
 	int ret;
 
+	/* save scope info */
 	sf.prev = tab->fp;
 	sf.bp = tab->bp;
+	sf.cnt = tab->cnt;
 
 	if ((ret = sym_push(tab, &sf, sizeof(sf))) == 0)
 		tab->fp = tab->sp;
+
+	/* reset the scope reference count */
+	tab->cnt = 0;
 
 	return ret;
 }
@@ -217,8 +222,10 @@ int sym_sf_pop(struct symtab * tab)
 		dst[i] = src[i];
 
 	tab->sp = sp + sizeof(sf);
+	/* restore scope info */
 	tab->fp = sf.prev;
 	tab->bp = sf.bp;
+	tab->cnt = sf.cnt;
 
 	/* insert the end of list dummy */
 	obj = (struct sym_obj *)((void *)tab->buf + tab->bp);
@@ -228,11 +235,12 @@ int sym_sf_pop(struct symtab * tab)
 }
 
 /* Pick a stack frame */
-static bool sym_sf_get(struct symtab * tab, struct sym_sf * sf)
+void sym_sf_get(struct symtab * tab, struct sym_sf * sf)
 {
 	if (tab->fp >= tab->top) {
 		sf->prev = 0;
 		sf->bp = 0;
+		sf->cnt = 0;
 	} else {
 		uint8_t * dst;
 		uint8_t * src;
@@ -243,8 +251,6 @@ static bool sym_sf_get(struct symtab * tab, struct sym_sf * sf)
 		for(i = 0; i < sizeof(sf); ++i)
 			dst[i] = src[i];
 	}
-
-	return true;
 }
 
 

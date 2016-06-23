@@ -21,41 +21,33 @@
 # Author: Robinson Mittmann <bobmittmann@gmail.com>
 # 
 
-include ../../mk/config.mk
+ELL = ../../ell/src/ell
 
-LIB_STATIC = microjs
+all: ll ll2
 
-CFILES = microjs_dbg.c microjs_str.c microjs_lib.c microjs_vm.c \
-		 microjs_lex.c microjs_sym.c microjs_ll.c microjs_sdt.c \
-		 microjs_json.c
-
-INCPATH = ../include
-
-include ../../mk/lib.mk
-
-ifeq ($(HOST),Linux)
-	ELL = $(TOOLSDIR)/linux/ell
-else
-ifeq ($(HOST),Cygwin)
-	ELL = $(TOOLSDIR)/mingw/ell
-else
-ifeq ($(HOST),Msys)
-	ELL = $(TOOLSDIR)/mingw/ell
-else
-ifeq ($(HOST),Windows)
-	ELL = $(TOOLSDIR)/mingw/ell
-else
- $(error Unsuported HOST)
-endif
-endif
-endif
-endif
+clean: ll-clean ll2-clean
 
 ll: microjs_ll.c microjs_ll.h
 
+ll2: microjs2_ll.c microjs2_ll.h
+
+ll-clean: 
+	rm microjs_ll.c microjs_ll.h
+
+ll2-clean: 
+	rm microjs2_ll.c microjs2_ll.h
+
 microjs_ll.h: microjs.gr
-	$(ELL) -e -h $<
+	$(ELL) -e -d -h $<
 
 microjs_ll.c: microjs.gr
-	$(ELL) -e -c $<
+	$(ELL) -e -d -c $<
 	
+microjs2_ll.h: microjs2.gr
+	$(ELL) -e -a -d -p microjs -o $@ -h $<
+
+microjs2_ll.c: microjs2.gr
+	$(ELL) -e -a -d -p microjs -o $@ -c $<
+	
+.PHONY: ll ll2 ll-clean ll2-clean
+

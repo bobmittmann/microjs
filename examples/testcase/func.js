@@ -1,9 +1,20 @@
 var x, y;
 
+return;
+
 function test(y)
 {
 	x = y;
+
+	return 1;
+
+	x = 1;
 }
+
+x = 1;
+
+y = x + 1;
+print(x, y);
 
 //x = rand();
 //y = sqrt(21);
