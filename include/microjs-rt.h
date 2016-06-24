@@ -42,7 +42,7 @@
 /* All the rest  */
 #define MISCOP       (0 << 4)
 #define OPC_ABT      0
-#define OPC_RET      1
+#define OPC_RET      1 /* return */
 #define OPC_XPT      2 /* exception */
 #define OPC_POP      3
 #define OPC_INV      4
@@ -54,7 +54,7 @@
 #define OPC_INC      10
 #define OPC_DEC      11
 #define OPC_NOT      12
-#define OPC_NOP3     13
+#define OPC_UNLK     13
 #define OPC_NOP4     14
 #define OPC_NOP5     15
 
@@ -88,7 +88,7 @@
 #define OPC_SLD      (9 << 4)  /* SP relative load */
 #define OPC_SST      (10 << 4) /* SP relative store */
 
-#define OPC_RES2     (11 << 4)
+#define OPC_CALL     (11 << 4) /* subrotine call */
 #define OPC_RES3     (12 << 4)
 #define OPC_RES4     (13 << 4)
 #define OPC_RES5     (14 << 4)
@@ -111,6 +111,7 @@ struct microjs_vm {
 	uint16_t pc;
 	uint16_t sp;
 	uint16_t xp;
+	uint16_t lp;     /* link pointer */
 	int32_t * data;  /* host data area pointer */
 	int32_t * stack; /* host stack area */
 	void * env; /* environment */

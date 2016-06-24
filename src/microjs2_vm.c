@@ -115,6 +115,7 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 	int32_t * data = vm->data;
 	int32_t * sp = vm->stack + vm->sp;
 	int32_t * xp = vm->stack + vm->xp;
+	uint8_t * lp = code + vm->pc;
 	int ret;
 //	int cnt = 0;
 
@@ -156,6 +157,14 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 			/* get the relative address */
 		case (OPC_JMP >> 4):
 			r0 = SIGNEXT12BIT((*pc++ << 4) + opt);
+			pc += r0;
+			VMTRACEF("JMP 0x%04x (offs=%d)\n", (int)(pc - code), r0);
+			break;
+
+			/* get the relative address */
+		case (OPC_CALL >> 4):
+			r0 = SIGNEXT12BIT((*pc++ << 4) + opt);
+			lp = pc;
 			pc += r0;
 			VMTRACEF("JMP 0x%04x (offs=%d)\n", (int)(pc - code), r0);
 			break;
@@ -404,6 +413,11 @@ except:
 				xp = data + (r0 >> 16); /* update the exception frame */
 				VMTRACEF("XPT %d (PC=0x%04x XP=0x%04x)\n", 
 							r1, r0 & 0xffff, (r0 >> 16) * SIZEOF_WORD);
+				break;
+
+			case OPC_UNLK:
+				VMTRACEF("UNLK\n");
+				pc = lp;
 				break;
 
 			case OPC_RET:

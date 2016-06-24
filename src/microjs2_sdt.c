@@ -1683,7 +1683,7 @@ int op_arg_decl(struct microjs_sdt * microjs)
 
 	DCC_LOG1(LOG_INFO, "addr=0x%04x", addr);
 	/* get the address, according to the position on the stack,
-	 use the scope info to store the parameter count. */
+	 use the scope info to store the argument count. */
 	addr = microjs->stack_pos + microjs->tab->cnt++ * SIZEOF_WORD;
 
 	obj->addr = addr;
@@ -1699,9 +1699,27 @@ int op_arg_decl(struct microjs_sdt * microjs)
 
 int op_retval(struct microjs_sdt * microjs)
 {
-	DCC_LOG(LOG_WARNING, "not implemented!");
+	struct sym_ref ref;
+	int ret;
 
-	return 0;
+	/* FIXME: insert the function in the symbol table */
+	if ((ret = tgt_stack_pop(microjs)) < 0)
+		return ret;
+
+#if MICROJS_OPTIMIZATION_ENABLED
+	microjs->spc = microjs->pc; /* save code pointer */
+#endif
+	/* save current location on a temporary variable */
+	ref.addr = microjs->pc;
+#if MICROJS_TRACE_ENABLED
+	ref.lbl = sym_lbl_next(microjs->tab);
+#endif
+	TRACEF(".L%d:\n%04x\tUNLK\n", ref.lbl, microjs->pc);
+	/* reserve 2 positions for opcode + jump address */
+	microjs->code[microjs->pc++] = OPC_UNLK;
+
+	/* Alloc a temporary reference for the loop jump */
+	return sym_ref_push(microjs->tab, &ref);
 }
 
 
