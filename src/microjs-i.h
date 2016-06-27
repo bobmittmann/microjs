@@ -170,12 +170,16 @@ struct strbuf {
 #define SYM_OBJ_INT         (0x0 << 4)
 #define SYM_OBJ_STR         (0x1 << 4)
 #define SYM_OBJ_INT_ARRAY   (0x2 << 4)
-#define SYM_OBJ_STR_ARRAY   (0x3 << 4)
+#define SYM_OBJ_FUNCTION    (0x3 << 4)
 
 #define SYM_OBJ_TYPE_MASK   (0x3 << 4)
 #define SYM_OBJ_TYPE(SYM)   ((SYM)->flags & SYM_OBJ_TYPE_MASK) 
 #define SYM_OBJ_IS_STR(SYM) (SYM_OBJ_TYPE(SYM) == SYM_OBJ_STR)
 #define SYM_OBJ_IS_INT(SYM) (SYM_OBJ_TYPE(SYM) == SYM_OBJ_INT)
+
+#define SYM_OBJ_IS_FUNCTION(SYM)    (SYM_OBJ_TYPE(SYM) == SYM_OBJ_FUNCTION)
+#define SYM_OBJ_IS_INT(SYM)         (SYM_OBJ_TYPE(SYM) == SYM_OBJ_INT)
+#define SYM_OBJ_IS_GLOBAL(SYM)      ((SYM) & SYM_OBJ_GLOBAL)
 
 /* object */
 struct sym_obj {
@@ -192,8 +196,8 @@ struct symtab {
 	uint16_t sp;
 	uint16_t bp;
 	uint16_t fp;
+	uint16_t sym; /* scope defined symbol */
 	uint16_t top;
-	uint16_t cnt; /* scope defined general counter */
 #if MICROJS_TRACE_ENABLED
 	uint16_t tmp_lbl;
 #endif
@@ -257,20 +261,28 @@ struct sym_cld {
 	uint8_t cid;
 };
 
+
+#define SYM_CALL_LOCAL  1
+#define SYM_CALL_EXTERN 0
+
+#define SYM_CALL_IS_EXTERN(CALL) (((CALL).flags & SYM_CALL_LOCAL) == 0)
+#define SYM_CALL_IS_LOCAL(CALL)  (((CALL).flags & SYM_CALL_LOCAL) != 0)
+
 /* Function Call Descriptor */
 struct sym_call {
-	uint8_t xid;
+	int8_t retcnt;
 	uint8_t argcnt;
 	uint8_t argmin;
 	uint8_t argmax;
-	int8_t retcnt;
+	uint16_t addr;
+	uint8_t flags;
 };
 
 /* Stack frame */
 struct sym_sf {
 	uint16_t prev;
 	uint16_t bp;
-	uint16_t cnt;
+	uint16_t sym;
 };
 
 struct tabst {
@@ -305,6 +317,16 @@ struct sym_obj * sym_obj_lookup(struct symtab * tab,
 struct sym_obj * sym_obj_scope_lookup(struct symtab * tab, 
 									  const char * s, unsigned int len);
 
+/* get the current scope reference object */
+static inline struct sym_obj * sym_obj_scope_get(struct symtab * tab) {
+	return (struct sym_obj *)((uint8_t *)tab->buf + tab->sym); 
+}
+
+/* set the current scope reference object */
+static inline void sym_obj_scope_set(struct symtab * tab, 
+									 struct sym_obj * obj) {
+	tab->sym = (uint8_t *)obj - (uint8_t *)tab->buf; 
+}
 
 static inline bool symtab_isempty(struct symtab * tab) {
 	return (tab->sp == tab->top) ? true : false;

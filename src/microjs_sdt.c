@@ -780,7 +780,8 @@ int op_method_lookup(struct microjs_sdt * microjs)
 		return -ERR_EXTERN_NOT_FUNCTION;
 
 	/* prepare to call a method */
-	call.xid = xid;
+	call.addr = xid;
+	call.flags = SYM_CALL_EXTERN;
 	call.retcnt = xdef->f.ret;
 	call.argmin = xdef->f.argmin;
 	call.argmax = xdef->f.argmax;
@@ -813,7 +814,8 @@ int op_function_lookup(struct microjs_sdt * microjs)
 		return -ERR_EXTERN_NOT_FUNCTION;
 
 	/* prepare to call a function */
-	call.xid = xid;
+	call.addr = xid;
+	call.flags = SYM_CALL_EXTERN;
 	call.retcnt = xdef->f.ret;
 	call.argmin = xdef->f.argmin;
 	call.argmax = xdef->f.argmax;
@@ -858,9 +860,9 @@ int op_call(struct microjs_sdt * microjs)
 	microjs->spc = microjs->pc; /* save code pointer */
 #endif
 	TRACEF("%04x\tEXT \'%s\" %d\n", microjs->pc, 
-		   lib_extern_name(microjs->libdef, call.xid), call.argcnt);
+		   lib_extern_name(microjs->libdef, call.addr), call.argcnt);
 	microjs->code[microjs->pc++] = OPC_EXT;
-	microjs->code[microjs->pc++] = call.xid; /* external call number */
+	microjs->code[microjs->pc++] = call.addr; /* external call number */
 	microjs->code[microjs->pc++] = call.argcnt; /* stack size */
 
 	if ((ret = tgt_stack_adjust(microjs, call.retcnt - call.argcnt)) < 0)

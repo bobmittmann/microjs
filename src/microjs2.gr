@@ -213,7 +213,7 @@ catch_opt		: { op_try_end }
 				| "catch" { op_catch, op_blk_open } '(' ID { op_var_decl, op_push_tmp, op_var_init } ')' '{' stat_list '}' { op_blk_close, op_patch_ref }
 				;
 
-retval_opt      :
+retval_opt      : { op_return }
 				| exp { op_retval }
 				;
 
@@ -221,7 +221,7 @@ retval_opt      :
 // Function definitions
 // -------------------------------------------------------------------------- 
 
-function_def 	: "function" ID { op_fun_def, op_blk_open } '(' arg_lst_opt ')' '{'  stat_list '}' { op_blk_close, op_patch_ref } 
+function_def 	: "function" ID { op_fun_def, op_blk_open } '(' arg_lst_opt ')' '{'  stat_list '}' { op_return op_patch_ref } 
 				;
 
 arg_lst_opt		: 

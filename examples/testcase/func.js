@@ -1,20 +1,25 @@
-var x, y;
+var i = 0;
 
-return;
-
-function test(y)
+function sum(x, y, w)
 {
-	x = y;
+	var z = 1;
 
-	return 1;
+	z = x + y + w;
 
-	x = 1;
+	print(x, y, z);
+
+	return z;
 }
 
-x = 1;
+var x0, y0, z0;
 
-y = x + 1;
-print(x, y);
+x0 = 11;
+y0 = 22;
+
+z0 = sum(x0, y0, 1);
+
+print(x0, y0, z0);
+
 
 //x = rand();
 //y = sqrt(21);

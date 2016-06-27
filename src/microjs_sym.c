@@ -192,13 +192,10 @@ int sym_sf_push(struct symtab * tab)
 	/* save scope info */
 	sf.prev = tab->fp;
 	sf.bp = tab->bp;
-	sf.cnt = tab->cnt;
+	sf.sym = tab->sym;
 
 	if ((ret = sym_push(tab, &sf, sizeof(sf))) == 0)
 		tab->fp = tab->sp;
-
-	/* reset the scope reference count */
-	tab->cnt = 0;
 
 	return ret;
 }
@@ -225,7 +222,7 @@ int sym_sf_pop(struct symtab * tab)
 	/* restore scope info */
 	tab->fp = sf.prev;
 	tab->bp = sf.bp;
-	tab->cnt = sf.cnt;
+	tab->sym = sf.sym;
 
 	/* insert the end of list dummy */
 	obj = (struct sym_obj *)((void *)tab->buf + tab->bp);
@@ -240,7 +237,7 @@ void sym_sf_get(struct symtab * tab, struct sym_sf * sf)
 	if (tab->fp >= tab->top) {
 		sf->prev = 0;
 		sf->bp = 0;
-		sf->cnt = 0;
+		sf->sym = 0;
 	} else {
 		uint8_t * dst;
 		uint8_t * src;

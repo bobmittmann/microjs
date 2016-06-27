@@ -117,7 +117,7 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 	int32_t * xp = vm->stack + vm->xp;
 	uint8_t * lp = code + vm->pc;
 	int ret;
-//	int cnt = 0;
+	int cnt = 0;
 
 #if MICROJS_TRACE_ENABLED
 	trace_f = microjs_vm_tracef;
@@ -144,8 +144,8 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 		int32_t r1;
 		int32_t r2;
 
-//		if (++cnt == 600)
-//			break;
+		if (++cnt == 32)
+			break;
 
 		/* fetch */
 		VMTRACEF("%04x\t", (int)(pc - code));
@@ -154,17 +154,19 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 		opc >>= 4;
 
 		switch (opc) {
-			/* get the relative address */
-		case (OPC_JMP >> 4):
-			r0 = SIGNEXT12BIT((*pc++ << 4) + opt);
-			pc += r0;
-			VMTRACEF("JMP 0x%04x (offs=%d)\n", (int)(pc - code), r0);
+			/* get the absolute call address */
+		case (OPC_CALL >> 4):
+			r0 = (*pc++ << 4) + opt;
+			lp = pc;
+			pc = code + r0;
+			VMTRACEF("CALL 0x%04x (LP=0x%04x SP=0x%04x)\n", (int)(pc - code), 
+					 (int)(lp - code), 
+					 (int)(sp - vm->stack) * SIZEOF_WORD);
 			break;
 
 			/* get the relative address */
-		case (OPC_CALL >> 4):
+		case (OPC_JMP >> 4):
 			r0 = SIGNEXT12BIT((*pc++ << 4) + opt);
-			lp = pc;
 			pc += r0;
 			VMTRACEF("JMP 0x%04x (offs=%d)\n", (int)(pc - code), r0);
 			break;
@@ -177,18 +179,6 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 				pc += r0;
 			break;
 
-		case (OPC_PUSHX >> 4):
-			/* get the exception absolute jump address */
-			r0 = (*pc++ << 4) + opt;
-			/* combine with the current exception frame pointer */
-			r0 |= ((xp - vm->stack) << 16);
-			STACK_PUSH(r0);
-			xp = sp; /* update the exception pointer */
-			VMTRACEF("PUSHX 0x%04x (XP=0x%04x->0x%04x) \n", 
-						r0 & 0xffff, (r0 >> 16) * SIZEOF_WORD, 
-						(int)(xp - vm->stack) * SIZEOF_WORD);
-			break;
-
 		case (OPC_ISP >> 4):
 			r0 = SIGNEXT12BIT((*pc++ << 4) + opt);
 			VMTRACEF("ISP %d; SP=0x%04x\n", r0 * SIZEOF_WORD, 
@@ -198,11 +188,26 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 					 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
 			break;
 
+		case (OPC_PUSHX >> 4):
+			/* get the exception absolute jump address */
+			r0 = (*pc++ << 4) + opt;
+			/* combine with the current exception frame pointer */
+			r0 |= ((xp - vm->stack) << 16);
+			STACK_PUSH(r0);
+			xp = sp; /* update the exception pointer */
+			VMTRACEF("PUSHX 0x%04x (XP=0x%04x->0x%04x SP=0x%04x)\n", 
+						r0 & 0xffff, (r0 >> 16) * SIZEOF_WORD, 
+						(int)(xp - vm->stack) * SIZEOF_WORD,
+						(int)(sp - vm->stack) * SIZEOF_WORD);
+			break;
+
 		case (OPC_LD >> 4):
 			r1 = (*pc++ << 4) + opt;
 			r0 = data[r1];
 			STACK_PUSH(r0);
-			VMTRACEF("LD [0x%04x] -> %d\n", r1 * SIZEOF_WORD, r0);
+			VMTRACEF("LD [0x%04x] -> %d; (SP=0x%04x)\n", 
+					 r1 * SIZEOF_WORD, r0, 
+					 (int)(sp - vm->stack) * SIZEOF_WORD);
 			break;
 
 		case (OPC_ST >> 4):
@@ -231,7 +236,7 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 		case (OPC_I4 >> 4): 
 			r0 = SIGNEXT4BIT(opt);
 			STACK_PUSH(r0);
-			VMTRACEF("I4 %d; SP=0x%04x\n", r0,
+			VMTRACEF("I4 %d; (SP=0x%04x)\n", r0,
 					 (int)(sp - vm->stack) * SIZEOF_WORD);
 			break;
 
@@ -376,20 +381,22 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 				r0 = (int16_t)(pc[0] | pc[1] << 8);
 				pc += 2;
 				STACK_PUSH(r0);
-				VMTRACEF("I16 0x%04x\n", r0);
+				VMTRACEF("I16 %d; (SP=0x%04x)\n", r0,
+						 (int)(sp - vm->stack) * SIZEOF_WORD);
 				break;
 
 			case OPC_I8:
 				r0 = (int8_t)*pc++;
 				STACK_PUSH(r0);
-				VMTRACEF("I8 %d\n", r0);
+				VMTRACEF("I8 %d; (SP=0x%04x)\n", r0,
+						 (int)(sp - vm->stack) * SIZEOF_WORD);
 				break;
 
 			case OPC_EXT:
 				r0 = *pc++;
 				r1 = *pc++;
 				VMTRACEF("EXT %d, %d; SP=0x%04x\n", r0, r1, 
-						 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
+						 (int)(sp - vm->stack) * SIZEOF_WORD);
 				r0 = microjs_extern[r0](&vm->env, sp, r1);
 				if (r0 < 0) {
 					DCC_LOG1(LOG_INFO, "exception %d!", r0);
@@ -399,7 +406,7 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 				/* adjust the stack pointer */
 				STACK_ADJUST(r1 - r0);
 				VMTRACEF(".stackfix(%d) SP=0x%04x\n", (r1 - r0) * SIZEOF_WORD, 
-						 (unsigned int)(sp - vm->stack) * SIZEOF_WORD);
+						 (int)(sp - vm->stack) * SIZEOF_WORD);
 				break;
 
 
@@ -416,7 +423,7 @@ except:
 				break;
 
 			case OPC_UNLK:
-				VMTRACEF("UNLK\n");
+				VMTRACEF("UNLK (LP=0x%04x)\n", (int)(lp - code));
 				pc = lp;
 				break;
 

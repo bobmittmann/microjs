@@ -35,6 +35,7 @@
 
 static const char * const err_tab[] = {
 	[OK] = "Ok", 
+	[ERR_GENERAL] = "general fault",
 	[ERR_UNEXPECED_EOF] = "unexpected end of file",
 	[ERR_UNEXPECTED_CHAR] = "unexpected char",
 	[ERR_UNEXPECTED_SYMBOL] = "unexpected symbol",
@@ -62,7 +63,7 @@ static const char * const err_tab[] = {
 	[ERR_CODE_MEM_OVERFLOW] = "code memory overflow",
 	[ERR_RET_COUNT_MISMATCH] = "function returns no value",
 	[ERR_INVALID_INSTRUCTION] = "invalid VM instruction",
-	[ERR_EXTERN_NOT_FUNCTION] = "not a function",
+	[ERR_EXTERN_NOT_FUNCTION] = "extern is not a function",
 	[ERR_EXTERN_NOT_ARRAY] = "not an array",
 	[ERR_EXTERN_NOT_OBJECT] = "not an object",
 	[ERR_EXTERN_NOT_INTEGER] = "not an integer type",
@@ -71,6 +72,10 @@ static const char * const err_tab[] = {
 	[ERR_NOT_IMPLEMENTED] = "construct not implemented",
 	[ERR_ATTR_NOT_ARRAY] = "attribute is not an array",
 	[ERR_NULL_POINTER] = "null pointer",
+	[ERR_NOT_FUNCTION] = "symbol is not a function",
+	[ERR_NOT_VARIABLE] = "symbol is not a variable",
+	[ERR_FUNCTION_UNKNOWN] = "unknown function",
+	[ERR_OBJ_DEFINED] = "symbol already defined",
 };
 
 const char * microjs_strerr(int err)

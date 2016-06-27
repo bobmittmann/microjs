@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/* Last symbol num:162  Num rules:110 */
+/* Last symbol num:164  Num rules:110 */
 
 #define T_EOF                    0
 #define T_DOT                    1
@@ -168,9 +168,11 @@
 #define A_OP_IF_ELSE           156
 #define A_OP_TRY_END           157
 #define A_OP_CATCH             158
-#define A_OP_RETVAL            159
-#define A_OP_FUN_DEF           160
-#define A_OP_ARG_DECL          161
+#define A_OP_RETURN            159
+#define A_OP_RETVAL            160
+#define A_OP_FUN_DEF           161
+#define A_OP_FUN_END           162
+#define A_OP_ARG_DECL          163
 
 #define IS_A_TERMINAL(_X) ((_X) < NONTERM_BASE)
 #ifdef ACTION_BASE

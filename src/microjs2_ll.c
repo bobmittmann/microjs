@@ -414,12 +414,12 @@ static const uint8_t rule_vec[] = {
 	A_OP_TRY_END, 
 	/* 101:catch_opt(14) -> */
 	T_CATCH, A_OP_CATCH, A_OP_BLK_OPEN, T_LPAREN, T_ID, A_OP_VAR_DECL, A_OP_PUSH_TMP, A_OP_VAR_INIT, T_RPAREN, T_LBRACE, N_STAT_LIST, T_RBRACE, A_OP_BLK_CLOSE, A_OP_PATCH_REF, 
-	/* 102:retval_opt(0) -> */
-	
+	/* 102:retval_opt(1) -> */
+	A_OP_RETURN, 
 	/* 103:retval_opt(2) -> */
 	N_EXP, A_OP_RETVAL, 
-	/* 104:function_def(12) -> */
-	T_FUNCTION, T_ID, A_OP_FUN_DEF, A_OP_BLK_OPEN, T_LPAREN, N_ARG_LST_OPT, T_RPAREN, T_LBRACE, N_STAT_LIST, T_RBRACE, A_OP_BLK_CLOSE, A_OP_PATCH_REF, 
+	/* 104:function_def(13) -> */
+	T_FUNCTION, T_ID, A_OP_FUN_DEF, A_OP_BLK_OPEN, T_LPAREN, N_ARG_LST_OPT, T_RPAREN, T_LBRACE, N_STAT_LIST, T_RBRACE, A_OP_BLK_CLOSE, A_OP_FUN_END, A_OP_PATCH_REF, 
 	/* 105:arg_lst_opt(0) -> */
 	
 	/* 106:arg_lst_opt(1) -> */
@@ -431,7 +431,7 @@ static const uint8_t rule_vec[] = {
 	/* 109:arg_opt(2) -> */
 	T_COMMA, N_ARG_LST, 
 };
-/* 282 bytes */
+/* 284 bytes */
 
 static const struct {
 	uint16_t off;
@@ -539,18 +539,18 @@ static const struct {
 	{ 244,  3},
 	{ 247,  1},
 	{ 248, 14},
-	{ 262,  0},
-	{ 262,  2},
-	{ 264, 12},
-	{ 276,  0},
-	{ 276,  1},
-	{ 277,  3},
-	{ 280,  0},
-	{ 280,  2},
+	{ 262,  1},
+	{ 263,  2},
+	{ 265, 13},
+	{ 278,  0},
+	{ 278,  1},
+	{ 279,  3},
+	{ 282,  0},
+	{ 282,  2},
 };
 /* 440 bytes */
 
-/* Total: 1682 bytes */
+/* Total: 1684 bytes */
 
 
 int microjs_ll_push(uint8_t * sp, unsigned int sym, unsigned int tok)
@@ -671,8 +671,10 @@ extern int op_throw(void * arg);
 extern int op_if_else(void * arg);
 extern int op_try_end(void * arg);
 extern int op_catch(void * arg);
+extern int op_return(void * arg);
 extern int op_retval(void * arg);
 extern int op_fun_def(void * arg);
+extern int op_fun_end(void * arg);
 extern int op_arg_decl(void * arg);
 
 
@@ -737,8 +739,10 @@ int (* const microjs_ll_op[])(void *) = {
  	[ACTION(A_OP_IF_ELSE)] = op_if_else,
  	[ACTION(A_OP_TRY_END)] = op_try_end,
  	[ACTION(A_OP_CATCH)] = op_catch,
+ 	[ACTION(A_OP_RETURN)] = op_return,
  	[ACTION(A_OP_RETVAL)] = op_retval,
  	[ACTION(A_OP_FUN_DEF)] = op_fun_def,
+ 	[ACTION(A_OP_FUN_END)] = op_fun_end,
  	[ACTION(A_OP_ARG_DECL)] = op_arg_decl,
  };
 
@@ -902,8 +906,10 @@ const const char * const microjs_ll_sym[] = {
  	"op_if_else",
  	"op_try_end",
  	"op_catch",
+ 	"op_return",
  	"op_retval",
  	"op_fun_def",
+ 	"op_fun_end",
  	"op_arg_decl",
  };
 
