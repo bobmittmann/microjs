@@ -56,7 +56,6 @@ struct symtab * symtab_init(uint32_t sym_buf[],
 #endif
 	/* insert the end of list dummy object */
 	tab->buf[0].prev = 0;
-	tab->buf[0].next = 0;
 
 	DCC_LOG3(LOG_INFO, "bp=%d sp=%d fp=%d", tab->bp, tab->sp, tab->fp);
 
@@ -203,7 +202,7 @@ int sym_sf_push(struct symtab * tab)
 /* Pop the stack frame */
 int sym_sf_pop(struct symtab * tab)
 {
-	struct sym_obj * obj;
+//	struct sym_obj * obj;
 	int sp = tab->fp; /* use frame pointer as reference */
 	struct sym_sf sf;
 	uint8_t * dst;
@@ -225,8 +224,7 @@ int sym_sf_pop(struct symtab * tab)
 	tab->sym = sf.sym;
 
 	/* insert the end of list dummy */
-	obj = (struct sym_obj *)((void *)tab->buf + tab->bp);
-	obj->next = 0;
+//	obj = (struct sym_obj *)((void *)tab->buf + tab->bp);
 
 	return 0;
 }
@@ -287,12 +285,10 @@ struct sym_obj * sym_obj_new(struct symtab * tab,
 	obj->flags = (tab->fp == tab->top) ? SYM_OBJ_GLOBAL : 0;
 	obj->addr = 0;
 	obj->size = 0;
-	obj->next = obj_len;
 	
 	/* insert the end of list dummy */
 	next = (struct sym_obj *)((void *)obj + obj_len);
 	next->prev = obj_len;
-	next->next = 0;
 
 	tab->bp += obj_len;
 
@@ -317,17 +313,18 @@ struct sym_obj * sym_obj_lookup(struct symtab * tab,
 struct sym_obj * sym_obj_scope_lookup(struct symtab * tab, 
 									  const char * s, unsigned int len)
 {
-	struct sym_obj * obj;
+	struct sym_obj * obj = (struct sym_obj *)((void *)tab->buf + tab->bp); 
+	struct sym_obj * first;
 	struct sym_sf sf;
 
 	sym_sf_get(tab, &sf);
-	obj = (struct sym_obj *)((void *)tab->buf + sf.bp); 
+	first = (struct sym_obj *)((void *)tab->buf + sf.bp); 
 
 	/* search in the current scope only */
-	while (obj->next != 0) { 
+	while (obj != first) { 
+		obj = (struct sym_obj *)((void *)obj - obj->prev);
 		if ((strncmp(obj->nm, s, len) == 0) && (obj->nm[len] == '\0'))
 			return obj;
-		obj = (struct sym_obj *)((void *)obj + obj->next);
 	}
 
 	return NULL;
@@ -335,13 +332,14 @@ struct sym_obj * sym_obj_scope_lookup(struct symtab * tab,
 
 int symtab_dump(FILE * f, struct symtab * tab)
 {
-	struct sym_obj * obj = (void *)tab->buf;
+	struct sym_obj * obj = (struct sym_obj *)((void *)tab->buf + tab->bp); 
 
-	while (obj->next != 0) { 
+	/* search from the inner scope out */
+	while (obj->prev != 0) { 
+		obj = (struct sym_obj *)((void *)obj - obj->prev);
 		fprintf(f, "%04x %c O .data   %04x    %s\n", obj->addr, 
 				(obj->flags & SYM_OBJ_GLOBAL) ? 'g' : 'l',
 				obj->size, obj->nm);
-		obj = (struct sym_obj *)((void *)obj + obj->next);
 	}
 
 	return 0;
@@ -369,12 +367,12 @@ int symtab_dump(FILE * f, struct symtab * tab)
 /* return the total data size of the objects in the table */
 int symtab_data_size(struct symtab * tab)
 {
-	struct sym_obj * obj = (void *)tab->buf;
+	struct sym_obj * obj = (struct sym_obj *)((void *)tab->buf + tab->bp); 
 	int size = 0;
 
-	while (obj->next != 0) { 
+	while (obj->prev != 0) { 
+		obj = (struct sym_obj *)((void *)obj - obj->prev);
 		size += obj->size;
-		obj = (struct sym_obj *)((void *)obj + obj->next);
 	}
 
 	return size;

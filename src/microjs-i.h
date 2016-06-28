@@ -184,22 +184,28 @@ struct strbuf {
 /* object */
 struct sym_obj {
 	uint8_t prev;
-	uint8_t next;
 	uint8_t flags;
-	uint8_t size;
 	uint16_t addr;
+	union {
+		uint16_t size;
+		struct {
+			uint8_t argc; /* Function argument count */
+			uint8_t retc; /* Function return count */
+		};
+	};
 	char nm[0];
 } __attribute__((packed))__;
 
 struct symtab {
 	struct microjs_rt rt; /* run-time info */
-	uint16_t sp;
-	uint16_t bp;
-	uint16_t fp;
-	uint16_t sym; /* scope defined symbol */
-	uint16_t top;
+	uint16_t top; /* table stack top */
+	uint16_t sp; /* stack pointer - descend */
+	uint16_t bp; /* base pointer - heap, ascend */
+	uint16_t fp; /* current scope reference pointer */
+	uint16_t sym; /* current function symbol pointer */
+	uint16_t fun; /* function scope reference pointer */
 #if MICROJS_TRACE_ENABLED
-	uint16_t tmp_lbl;
+	uint16_t tmp_lbl; /* holds the last referenced label */
 #endif
 	struct sym_obj buf[];
 };

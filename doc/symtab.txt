@@ -1,4 +1,90 @@
-MicroJS - Micro JavaScript
+# MicroJS (Micro JavaScript) Symbol Table
+
+The symbol table is a data-structure used to hold global and local symbols
+as well as context information for the compiler (translator).
+The first scope is considered the global scope.
+
+### General memory layout
+
+The symbols table layout is as follow:
+
+**0**                                  **bp**     **sp**                **top**
+  |                           heap --->   |          |  <--- stack          |
+  v                                       v          v                      v
+ +-----+-----+----+-----+-----+----+-----+----------+-----+----+-----+-----+
+ | G.1 | G.2 | .. | G.n | L.1 | .. | L.m |          | A.n | .. | A.2 | A.1 |
+ +-----+-----+----+-----+-----+----+-----+----------+-----+----+-----+-----+
+ 
+                                          |          |
+                                          +-- Free --+
+                                          |  Memory  |
+  G. : Global symbol
+  L. : Local symbol
+  A. : Auxiliary object
+  bp : Base Pointer
+  sp : Stack Pointer
+--------------------
+
+## Symbol Objects
+
+Symbol objects represent variables (scalar or vectors), constants and 
+functions. Variables can be allocated in the target **data** section memory, for globals, or on the target **stack** memory section, for locals and function arguments and return values.
+
+Symbol objects are allocated bottom-up (heap style) and the next available
+memory position is indicated by "bp" (base=pointer).
+
+Local objects are deallocated when their scope is closed. Symbols allocated 
+int the global scope are persistent. So they can be referenced in subsequent
+compilation sessions.
+
++-------+-------+--------+----------+-------------+
+| prev  | flags | opt    | addr     | name        |
++-------+-------+--------+----------+-------------+    
+| 8     | 8     | 16     | 16       | 1..32       |
++-------+-------+--------+----------+-------------+
+
+Symbol objects are linked in a Doubled linked list so bottom up an top down 
+searches are possible.
+
+
+
+  +------------+        +------------+       +-----------+
+  |            |        |            |       |           |    **bp**
+  |            |        |            |       |           |       |
+  V            |        V            |       V           |       v
+ +----------+----------+----------+---------+---------+---------+-----
+ | Global.1 | Global.2 | Global.3 | Local.1 | Local.2 | Local.3 |   
+ +----------+----------+----------+---------+---------+---------+-----
+   |         ^            |        ^           |       ^  |      |
+   |         |            |        |           |       | ///     |
+  ///        |            |        |           |       |         |
+             +------------+        +-----------+       +---------+
+
+### Symbols API
+
+sym_obj_new() : allocate a new symbol.
+
+sym_obj_lookup() : search for a symbol in the whole table starting from 
+				   the inner to the outer scope.
+
+sym_obj_scope_lookup() : search for a symbol in the inner (current) scope only.
+
+symtab_dump() : dump the content of the symbol table.
+
+
+### Auxiliary Objects
+
+Auxiliary objects are used by the compiler (translator) to resolve syntactic 
+constructs. For example back-patching of jumps, variable assignment, 
+function calls.
+
+Auxiliary objects are allocated top-down (stack style) and the pointer to
+the last used memory location is given by "sp"(stack pointer).
+
+
+## Scope frames
+
+
 
 Memory Layout
 
@@ -64,14 +150,6 @@ Temporary Variable Descriptor
 
 ---------------------------------------------
 
-Object: 
-sym_obj_new()
-sym_obj_lookup()
-+-------+-------+----------+-------+-----------+
-| Id    | Flags | Addr     | Size  | Name      |
-+-------+-------+----------+-------+-----------+    
-| 8     | 8     | 16       | 8     | 1..32     |
-+-------+-------+----------+-------+-----------+
 
 Temporary: 
 - sym_tmp_push()
