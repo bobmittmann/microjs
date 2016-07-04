@@ -41,6 +41,8 @@
 
 #include "microjs2_ll.h"
 
+#define MICROJS_FUNCTIONS_ENABLED 1
+
 #define __MICROJS_LL_H__
 #define __MICROJS_I__
 #include "microjs-i.h"

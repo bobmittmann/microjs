@@ -90,6 +90,10 @@
 #define MICROJS_OPTIMIZATION_ENABLED 1
 #endif
 
+#ifndef MICROJS_FUNCTIONS_ENABLED
+#define MICROJS_FUNCTIONS_ENABLED 0
+#endif
+
 #if (MICROJS_TRACE_ENABLED)
 #define	TRACEF(__FMT, ...) do { \
 	fprintf(stdout, __FMT, ## __VA_ARGS__); \
@@ -202,8 +206,10 @@ struct symtab {
 	uint16_t sp; /* stack pointer - descend */
 	uint16_t bp; /* base pointer - heap, ascend */
 	uint16_t fp; /* current scope reference pointer */
+#if MICROJS_FUNCTIONS_ENABLED
 	uint16_t sym; /* current function symbol pointer */
 	uint16_t fun; /* function scope reference pointer */
+#endif
 #if MICROJS_TRACE_ENABLED
 	uint16_t tmp_lbl; /* holds the last referenced label */
 #endif
@@ -288,7 +294,9 @@ struct sym_call {
 struct sym_sf {
 	uint16_t prev;
 	uint16_t bp;
+#if MICROJS_FUNCTIONS_ENABLED
 	uint16_t sym;
+#endif
 };
 
 struct tabst {
@@ -323,6 +331,7 @@ struct sym_obj * sym_obj_lookup(struct symtab * tab,
 struct sym_obj * sym_obj_scope_lookup(struct symtab * tab, 
 									  const char * s, unsigned int len);
 
+#if MICROJS_FUNCTIONS_ENABLED
 /* get the current scope reference object */
 static inline struct sym_obj * sym_obj_scope_get(struct symtab * tab) {
 	return (struct sym_obj *)((uint8_t *)tab->buf + tab->sym); 
@@ -333,6 +342,7 @@ static inline void sym_obj_scope_set(struct symtab * tab,
 									 struct sym_obj * obj) {
 	tab->sym = (uint8_t *)obj - (uint8_t *)tab->buf; 
 }
+#endif
 
 static inline bool symtab_isempty(struct symtab * tab) {
 	return (tab->sp == tab->top) ? true : false;

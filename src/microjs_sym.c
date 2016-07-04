@@ -191,7 +191,9 @@ int sym_sf_push(struct symtab * tab)
 	/* save scope info */
 	sf.prev = tab->fp;
 	sf.bp = tab->bp;
+#if MICROJS_FUNCTIONS_ENABLED
 	sf.sym = tab->sym;
+#endif
 
 	if ((ret = sym_push(tab, &sf, sizeof(sf))) == 0)
 		tab->fp = tab->sp;
@@ -221,7 +223,9 @@ int sym_sf_pop(struct symtab * tab)
 	/* restore scope info */
 	tab->fp = sf.prev;
 	tab->bp = sf.bp;
+#if MICROJS_FUNCTIONS_ENABLED
 	tab->sym = sf.sym;
+#endif
 
 	/* insert the end of list dummy */
 //	obj = (struct sym_obj *)((void *)tab->buf + tab->bp);
@@ -235,7 +239,9 @@ void sym_sf_get(struct symtab * tab, struct sym_sf * sf)
 	if (tab->fp >= tab->top) {
 		sf->prev = 0;
 		sf->bp = 0;
+#if MICROJS_FUNCTIONS_ENABLED
 		sf->sym = 0;
+#endif
 	} else {
 		uint8_t * dst;
 		uint8_t * src;
