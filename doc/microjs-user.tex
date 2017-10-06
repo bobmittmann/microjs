@@ -1,0 +1,321 @@
+\documentclass[11pt]{article} % required
+\usepackage{geometry}
+\geometry{letterpaper, portrait, margin=1in, headheight=110pt}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+
+\begingroup
+\catcode`_=13
+\gdef\var{%
+	\begingroup
+	\catcode`_=13
+	\def_{\_}%
+	\dovar
+}
+\gdef\dovar#1{%
+	\mathtt{#1}%
+\endgroup
+}
+\endgroup
+
+\usepackage{color}
+%\usepackage[T1]{fontenc}
+\usepackage{droid}
+\renewcommand*\familydefault{\sfdefault} %% Only if the base font of the document is to be sans serif
+
+
+\usepackage{csquotes}
+\usepackage{varwidth}
+\usepackage{varwidth}
+\usepackage{capt-of}
+\usepackage{booktabs}
+\usepackage[pdftex]{graphicx}
+% declare the path(s) where your graphic files are
+\graphicspath{{img/pdf/}{img/png/}{img/pdf_tex/}}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{textgreek}
+\usepackage{mathtools} % for \ceil and \floor
+
+\usepackage{listings}
+
+\lstdefinelanguage{uJS} {
+	language = C,
+	morekeywords = {var, const, function, true, false, try, throw, catch},
+}
+
+\lstdefinelanguage{Console} {
+	keywords = {var, const, function, true, false, try, throw, catch},
+}
+
+%\usepackage{inconsolata}
+
+\lstset{
+	basicstyle=\footnotesize\ttfamily, 
+	keywordstyle=\color{blue}\bfseries\ttfamily,
+	stringstyle=\color{red}\ttfamily,
+	commentstyle=\color{magenta}\ttfamily,
+	identifierstyle=\color{black}\ttfamily,          
+%		 morecomment=[l][\color{magenta}]{\#},
+	numberstyle=\tiny,          
+	numbersep=5pt,             
+	tabsize=4,                
+	extendedchars=true,      
+	breaklines=true,        
+	showspaces=false,      
+	showtabs=false,       
+	xleftmargin=17pt,
+	framexleftmargin=17pt,
+	framexrightmargin=5pt,
+	framexbottommargin=4pt,
+	showstringspaces=false
+}
+
+\lstloadlanguages{
+	C, uJS, Console 
+}
+
+% Definition of \maketitle
+\makeatletter         
+\def\@maketitle{
+	\raggedright
+	\vfill
+	\begin{center}
+	{\Huge \bfseries \sffamily \@title }\\[4ex] 
+	{\Large \sffamily \@author}\\ 
+	{\sffamily \textit{\email}}\\[8ex]
+	{\sffamily \@date}\\[8ex]
+	{\sffamily \bfseries Revision \therevision}
+	\vfill
+	\includegraphics[height=40pt]{img/pdf/microjs-logo.pdf}
+	\vfill
+	\end{center}
+	\noindent\rule{\linewidth}{1pt}\\
+	\smallskip
+	\includegraphics[height=24pt]{img/pdf/thinkos-logo.pdf}
+	\quad
+}
+\makeatother
+
+% Define Title Author Date and Revision
+\makeatletter         
+\title{MicroJS - User Guide}
+\author{Bob Mittmann}
+\date{October 2017}
+\def\email{bobmittmann@gmail.com} % revision number variable
+\def\therevision{0.1} % revision number variable
+\let\thetitle\@title % title variable
+\makeatother
+
+\fancyhead[R]{\thepage}
+\rhead{\includegraphics[height=20pt]{img/pdf/microjs-logo.pdf}}
+\lhead{\thetitle}
+\rfoot{Page \thepage}
+\cfoot{}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+\pagenumbering{Roman}
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+\pagenumbering{arabic}
+
+\section{Introduction}
+
+Deep embedded systems with stringent memory resources --- comprising few kilobytes of memory -- can take advantage of a fast compiled language like MircoJS for scripting.
+
+A common use for microjs is scripting on applications using small microcontrollers.
+
+The main advantage of compiling the code as oposed to interpret at runtime is the possibility of catching syntax errors before start executing the code, avoiding some undesirable situations where the script needs to abort because a late syntax error was catch. Besides that the compilation process is fast, since it is performed on a single pass. Despite that fact still some optimizations in the code in the vicinity of the current decoding (parsing) block is performed wich would be almost impossible for simple interpreters. The result is a fairly compact and fast code.
+
+\section {Comments}
+
+Mulitline comments start with '/*' and ends with '*'. Whereas single line comments are indicated by a double slash: '//'.
+
+\section {Variables}
+
+A variable, in MicroJS, always refers to a 32bits signed integer location in memory.
+Variables are declared using the keyword: "var", followed by the name of the variable and an optional initial assignment. Multiple variables can be declared in a single var expression.
+
+Ex:
+
+\begin{lstlisting}[caption={Example 2},label={lst:verilog-if},language=uJS,frame=single]
+var i;
+
+var i = 0;
+
+var i, j;
+
+var i = 0, j = 1;
+\end{lstlisting}
+
+\subsection {Boolean}
+
+\section {Operators}
+
+\subsection {Arithmetic Operators}
+
+Those arithmetic operators are supported by MicroJS:
+
+\begin{table}[H]
+\begin{tabular}{ c l l }
+	\toprule
+	{\bf Expression} & {\bf Name}  & {\bf Description} \\
+	\midrule 
+	{\tt -x} & unary minus & \\
+	{\tt x + y} & binary plus &  \\
+	{\tt x - y} & binary minus &  \\
+	{\tt x * y} & times &  \\
+	{\tt x / y} & divide &  \\
+	{\tt x \% y} & remainder &  \\
+	\bottomrule
+\end{tabular}
+\centering
+\caption{Arithmetic Operators}
+\label{tab:operators}
+\end{table} 
+
+\subsection {Logic Operators}
+
+\begin{table}[H]
+\begin{tabular}{ c l l }
+	\toprule
+	{\bf Expression} & {\bf Name}  & {\bf Description} \\
+	\midrule 
+	{\tt !x} & logic not & \\
+	{\tt x \&\& y} & logic and &  \\
+	{\tt x || y} & logic or &  \\
+	\bottomrule
+\end{tabular}
+\centering
+\caption{Logic Operators}
+\label{tab:operators}
+\end{table} 
+
+\subsection{Bitwise Operators}
+
+\begin{table}[H]
+\begin{tabular}{ c l l }
+	\toprule
+	{\bf Expression} & {\bf Name}  & {\bf Description} \\
+	\midrule 
+	{\tt ~x} & bitwise not & \\
+	{\tt x \& y} & bitwise and &  \\
+	{\tt x | y} & bitwise or &  \\
+	{\tt x \^\ y} & bitwise xor (exclusive or) &  \\
+	{\tt x >> y} & arithmetic shift right &  \\
+	{\tt x << y} & logical/arithmetic shift left&  \\
+	\bottomrule
+\end{tabular}
+\centering
+\caption{Bitwise Operators}
+\label{tab:operators}
+\end{table} 
+
+\subsection{Numeric Comparison}
+
+\begin{table}[H]
+\begin{tabular}{ c l l }
+	\toprule
+	{\bf Expression} & {\bf Name}  & {\bf Description} \\
+	\midrule 
+	{\tt x == y } & equality & \\
+	{\tt x != y } & inequality &  \\
+	{\tt x < y } & less than &  \\
+	{\tt x <= y } & less than or equal to &  \\
+	{\tt x > y } & greater than &  \\
+	{\tt x >= y } & grater than or equal to &  \\
+	\bottomrule
+\end{tabular}
+\centering
+\caption{Numeric Comparison}
+\label{tab:operators}
+\end{table} 
+
+\subsection{Operators Precedence}
+
+\section {Strings}
+
+\section {Functions}
+
+\section {Control Flow}
+
+\section {Scope of Variables}
+
+\subsection {Global Scope}
+
+\subsection {Local Scope}
+
+\section {Constants} 
+
+\section {Vectors}
+
+\section {Methods}
+
+\section {System Libraries}
+
+\section {User Libraries}
+
+\section {Examples}
+
+\subsubsection{Example 1}
+
+\begin{lstlisting}[language=uJS]
+//
+// Generate the Fibonacci sequence up to the maximum 32 bits signed integer
+//
+
+var x0 = 0, x1 = 1, x;
+
+try {
+    var i = 1;
+    while (1) {
+        // Check whether the next sum will overflow or not
+        if (0x7fffffff - x1 <= x0) {
+            throw 1; // overflow
+        }
+        x = x1 + x0;
+        x0 = x1;
+        x1 = x;
+        printf("%2d | %10u\n", i, x);
+        i = i + 1;
+    }
+} catch (err) {
+    printf(" - overflow error!\n");
+}
+\end{lstlisting}
+Produces the output:
+
+\begin{lstlisting}[language=Console]
+[JS]$ js fib.js
+"fib.js"
+Code: 85 bytes.
+Data: 12 bytes.
+ 1 |          1
+ 2 |          2
+ 3 |          3
+ 4 |          5
+ 5 |          8
+ 6 |         13
+ ...
+43 |  701408733
+44 | 1134903170
+45 | 1836311903
+ - overflow error!
+[JS]$
+\end{lstlisting}
+
+\end{document}
+
