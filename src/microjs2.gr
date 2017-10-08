@@ -1,4 +1,4 @@
-%token EOF DOT COMMA SEMICOLON COLON PLUS MINUS STAR SLASH PERCENT AMPERSAND BAR CARET TILDE EXCLAM QUEST EQUALS LESSTHEN GREATTHEN LBRACKET RBRACKET LPAREN RPAREN LBRACE RBRACE GTE LTE EQU NEQ ASR SHL LOGICOR LOGICAND CATCH ELSE FALSE FOR IF THROW TRUE TRY VAR WHILE ID INT CHAR STRING ERR
+%token EOF DOT COMMA SEMICOLON COLON PLUS MINUS STAR SLASH PERCENT AMPERSAND BAR CARET TILDE EXCLAM QUEST EQUALS LESSTHEN GREATTHEN LBRACKET RBRACKET LPAREN RPAREN LBRACE RBRACE GTE LTE EQU NEQ ASR SHL LOGICOR LOGICAND CATCH ELSE FALSE FOR IF THROW TRUE TRY VAR WHILE ID INT CHAR STRING ERR CONST
 %%
 
 program 		: EOF
@@ -42,6 +42,26 @@ attr_assign		: ID { op_push_tmp } attr_assign2
 attr_assign2    : '=' exp { op_attr_assign }
 				| '[' exp ']' '=' exp { op_array_assign }
 				| method_call { op_ret_discard }
+				;
+
+// --------------------------------------------------------------------------
+// Constants
+// -------------------------------------------------------------------------- 
+
+const_list 		: const const_list1
+				;
+
+const_list1 	: 
+				| ',' const_list
+				;
+
+const			: ID { op_const_decl, op_push_tmp } '=' const_exp { op_const_init }
+				;
+
+const_exp		: exp
+				;
+
+attr_assign		: ID { op_push_tmp } attr_assign2
 				;
 
 // --------------------------------------------------------------------------
@@ -193,6 +213,7 @@ stat_list		:
 stat			: "for" '(' exp_lst_opt ';' { op_for_init } exp { op_for_cond } ';' exp_lst_opt { op_for_after } ')' compound_stat { op_for_end }
 				| "while" { op_while_begin } condition { op_while_cond } compound_stat { op_while_end }
 				| "if" condition { op_if_cond } compound_stat else_opt { op_patch_ref }
+
 				| "try" { op_try_begin } compound_stat catch_opt 
 				;
 

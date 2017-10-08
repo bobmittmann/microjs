@@ -54,6 +54,10 @@
 #define MICROJS_STRINGS_ENABLED 1
 #endif
 
+#ifndef MICROJS_USRLIB_ENABLED
+#define MICROJS_USRLIB_ENABLED 0
+#endif
+
 #ifndef MICROJS_FUNCTIONS_ENABLED
 #define MICROJS_FUNCTIONS_ENABLED 0
 #endif
@@ -90,10 +94,6 @@
 #define MICROJS_OPTIMIZATION_ENABLED 1
 #endif
 
-#ifndef MICROJS_FUNCTIONS_ENABLED
-#define MICROJS_FUNCTIONS_ENABLED 0
-#endif
-
 #if (MICROJS_TRACE_ENABLED)
 #define	TRACEF(__FMT, ...) do { \
 	fprintf(stdout, __FMT, ## __VA_ARGS__); \
@@ -105,6 +105,11 @@
 #else 
 #define TRACEF(__FMT, ...) do { } while (0)
 #define	FTRACEF(__F, __FMT, ...) do { } while (0)
+#endif
+
+#if MICROJS_FUNCTIONS_ENABLED
+	#undef MICROJS_USRLIB_ENABLED
+	#define MICROJS_USRLIB_ENABLED 1
 #endif
 
 /* --------------------------------------------------------------------------
@@ -477,9 +482,8 @@ static inline int sym_tmp_pop(struct symtab * tab, struct sym_tmp * tmp) {
 }
 
 /* --------------------------------------------------------------------------
-   Externals (Library)
+   Externals (System Library)
    -------------------------------------------------------------------------- */
-
 
 static inline struct classdef * lib_classdef_get(
 	const struct ext_libdef * libdef, int cid) {

@@ -129,15 +129,20 @@ extern "C" {
 void microjs_vm_init(struct microjs_vm * vm, const struct microjs_rt * rt,
 					 const void * env, int32_t data[], int32_t stack[]);
 
+/* Fill the data block with a pattern, usually zeores */
 void microjs_vm_clr_data(struct microjs_vm * vm, 
 						 const struct microjs_rt * rt);
 
+/* Revert all Virtual Machine internal registers to defaults. */
 void microjs_vm_reset(struct microjs_vm * vm);
 
+/* Execute the provided microjs code using a virtual machine instance. */
 int microjs_exec(struct microjs_vm * vm, uint8_t code[]);
 
+/* Stops the execution of the code in this virtual machine instance. */
 void microjs_abort(struct microjs_vm * vm);
 
+/* Stops the execution of the code in this virtual machine instance. */
 void strbuf_init(uint16_t * buf, unsigned int len);
 
 #ifdef __cplusplus
