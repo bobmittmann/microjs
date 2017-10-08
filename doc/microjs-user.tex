@@ -438,5 +438,107 @@ Data: 12 bytes.
 
 \section{Appendix}
 
+\subsection{BNF Grammar}
+
+%\renewcommand{\litleft}{\bf}
+%\renewcommand{\litright}{}
+%\renewcommand{\litright}{}
+
+\setlength{\grammarparsep}{20pt plus 1pt minus 1pt} % increase separation between rules
+\setlength{\grammarindent}{8em} % increase separation between LHS/RHS
+
+\begin{grammar}
+	<script> ::= <statement> <script>
+	<script> ::= <function-def> <script>
+	\alt `return' `;'
+
+	<ident-list> ::= <ident> `,' <ident-list> | <ident> | <empty>
+
+	<var-list> ::= <ident> `=' <expr> `,' <var-list> 
+	\alt <ident> `,' <var-list> 
+	\alt <ident> `=' <expr>
+	\alt <ident>
+
+	<const-list> ::= <ident> `=' <expr> `,' <const-list> | <ident> `=' <expr>
+
+	<function-def> ::= `function' `(' <ident-list> `)' `{' <declaration-specifier> `}'
+
+	<stat-list> ::= <statement> `;' <stat-list> | <statement>
+
+	<statement> ::= `throw' <exp> `;'
+	\alt `var' <var-list> `;'
+	\alt `const' <const-list> `;'
+	\alt `return' `;'
+	\alt `return' <exp> `;'
+	\alt <ident> `=' <expr> `;'
+	\alt `for' `(' <exp> `;' <exp> `;' <exp> `)' `{' <stat-list> `}'
+	\alt `while' `(' <exp> `)' `{' <stat-list> `}'
+	\alt `if' `(' <exp> `)' `{' <stat-list> `}' 
+	\alt `if' `(' <exp> `)' `{' <stat-list> `}' `else' `{' <stat-list> `}'
+	\alt `try' `{' <stat-list> `}' 
+	\alt `try' `{' <stat-list> `}' `catch' `(' <ident> `)' `{' <stat-list> `}'
+	\alt `{' <stat-list> `}'
+	\alt <empty>
+
+	<constant-exp> ::= <logic-or-exp> 
+
+	<logic-or-exp> ::= <logic-and-exp> 
+	\alt <logic-or-exp> `||' <logic-and-exp> 
+
+	<logic-and-exp> ::= <or-exp> 
+	\alt <logic-and-exp> `\&\&' <or-exp> 
+
+	<or-exp> ::= <xor-exp> 
+	\alt <or-exp> `|' <xor-exp> 
+
+	<xor-exp> ::= <and-exp> 
+	\alt <xor-exp> `^' <and-exp> 
+
+	<and-exp> ::= <equality-exp> 
+	\alt <and-exp> `\&' <equality-exp> 
+
+	<equality-exp> ::= <relational-exp>
+	\alt <equality-exp> `==' <relational-exp>
+	\alt <equality-exp> `!=' <relational-exp>
+
+	<relational-exp> ::= <shift-exp>
+	\alt <relational-exp> `<' <shift-exp>
+	\alt <relational-exp> `>' <shift-exp>
+	\alt <relational-exp> `<=' <shift-exp>
+	\alt <relational-exp> `>=' <shift-exp>
+
+	<shift-exp> ::= <additive-exp>
+	\alt <shift-exp> `<<' <additive-exp>
+	\alt <shift-exp> `>>' <additive-exp>
+
+	<additive-exp> ::= <mult-exp>
+	\alt <additive-exp> `+' <mult-exp>
+	\alt <additive-exp> `-' <mult-exp>
+
+	<mult-exp> ::= <unary-exp> 
+	\alt <mult-exp> `*' <unary-exp>
+	\alt <mult-exp> `/' <unary-exp>
+	\alt <mult-exp> `\%' <unary-exp>
+
+	<unary-exp> ::= <primary-exp>
+	\alt `~' <unary-exp>
+	\alt `-' <unary-exp>
+	\alt `!' <unary-exp>
+
+	<primary-exp> ::= <ident>
+	\alt <constant>
+	\alt <string>
+	\alt `(' <exp> `)'
+
+	<constant> ::= <integer>
+	\alt <char>
+	\alt <string>
+	\alt `true'
+	\alt `false'
+
+	<exp> ::= <assign-expression>
+
+\end{grammar}
+
 \end{document}
 
