@@ -39,6 +39,7 @@ const struct {
 	char nm[9];
 } lex_keyword[] = {
 	{ T_CATCH,    "catch" },
+	{ T_CONST,    "const" },
 	{ T_ELSE,     "else" },
 	{ T_FALSE,    "false" },
 	{ T_FOR,      "for" },
