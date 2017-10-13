@@ -74,7 +74,10 @@ enum {
 	ERR_NOT_FUNCTION        = 38,
 	ERR_NOT_VARIABLE        = 39,
 	ERR_FUNCTION_UNKNOWN    = 40,
-	ERR_OBJ_DEFINED         = 41
+	ERR_OBJ_DEFINED         = 41,
+	ERR_NOT_CONST           = 42,
+	ERR_RETVAL_RETURN       = 43,
+	ER_RETVAL_MISSING       = 44
 };
 
 struct symstat {

@@ -1,0 +1,53 @@
+# MicroJS (Micro JavaScript) Syntax
+
+## Introduction
+
+Deep embedded systems with stringent memory resources --- comprising few kilobytes of memory -- can take advantage of a fast compiled language like MircoJS for scripting.
+
+A common use for microjs is scripting on applications using small microcontrollers.
+
+The main advantage of compiling the code as oposed to interpret at runtime is the possibility of catching syntax errors before start executing the code, avoiding some undesirable situations where the script needs to abort because a late syntax error was catch. Besides that the compilation process is fast, since it is performed on a single pass. Despite that fact still some optimizations in the code in the vicinity of the current decoding (parsing) block is performed wich would be almost impossible for simple interpreters. The result is a fairly compact and fast code.
+
+## Variables
+
+A variable, in MicroJS, always refers to a 32bits signed integer location in memory.
+Variables are declared using the keyword: "var", followed by the name of the variable and an optional initial assignment. Multiple variables can be declared in a single var expression.
+
+Ex:
+
+var i;
+
+var i = 0;
+
+var i, j;
+
+var i = 0, j = 1;
+
+## Operators
+
+Those arithmetic operators are supported by MicroJS:
+| -x    | unary minus
+| x + y
+| x - y
+| x * y
+| x / y
+| x % y
+
+## Strings
+
+## Functions
+
+## Control Flow
+
+## Scope of Variables
+
+### Global Scope
+
+### Local Scope
+
+### Constants 
+
+## Vectors
+
+## Methods
+

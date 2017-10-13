@@ -360,7 +360,7 @@ int op_var_decl(struct microjs_sdt * microjs)
 	/* initial variables are int */
 	obj->size = 4;
 	/* flag as allocated */
-	obj->flags |= SYM_OBJ_ALLOC;
+	obj->flags |= SYM_STORE_DATA;
 
 	TRACEF(".WORD \"%s\" (%04x)\n", 
 		   sym_obj_name(microjs->tab, obj), obj->addr);

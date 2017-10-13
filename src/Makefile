@@ -23,19 +23,24 @@
 
 ELL = ../../ell/src/ell
 
-all: ll ll2
+all: ll ll2 ll3
 
-clean: ll-clean ll2-clean
+clean: ll-clean ll2-clean ll3-clean
 
 ll: microjs_ll.c microjs_ll.h
 
 ll2: microjs2_ll.c microjs2_ll.h
+
+ll3: microjs3_ll.c microjs3_ll.h
 
 ll-clean: 
 	rm microjs_ll.c microjs_ll.h
 
 ll2-clean: 
 	rm microjs2_ll.c microjs2_ll.h
+
+ll3-clean: 
+	rm microjs3_ll.c microjs3_ll.h
 
 microjs_ll.h: microjs.gr
 	$(ELL) -e -d -h $<
@@ -48,6 +53,12 @@ microjs2_ll.h: microjs2.gr
 
 microjs2_ll.c: microjs2.gr
 	$(ELL) -e -a -d -p microjs -o $@ -c $<
+
+microjs3_ll.h: microjs3.gr
+	$(ELL) -e -a -d -p microjs -o $@ -h $<
+
+microjs3_ll.c: microjs3.gr
+	$(ELL) -e -a -d -p microjs -o $@ -c $<
 	
-.PHONY: ll ll2 ll-clean ll2-clean
+.PHONY: ll ll2 ll3 ll-clean ll2-clean ll3-clean
 

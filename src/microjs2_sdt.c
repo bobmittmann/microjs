@@ -23,7 +23,6 @@
  * @author Robinson Mittmann <bobmittmann@gmail.com>
  */
 
-
 #define __MICROJS2_I__
 #include "microjs2-i.h"
 
@@ -212,23 +211,32 @@ int op_push_tmp(struct microjs_sdt * microjs)
 	return sym_tmp_push(microjs->tab, &tmp);
 }
 
-int op_pop_tmp(struct microjs_sdt * microjs)
+int op_push_ref(struct microjs_sdt * microjs)
+{
+	struct sym_ptr ptr;
+
+	ptr.obj = microjs->tok.obj;
+
+	INF("ref='%s'", ptr.obj->nm);
+
+	return sym_ptr_push(microjs->tab, &ptr);
+}
+
+int op_pop_ref(struct microjs_sdt * microjs)
 {
 	struct sym_obj * obj;
-	struct sym_tmp tmp;
+	struct sym_ptr ptr;
 	int ret;
 
 	DCC_LOG(LOG_INFO, " >>> ...");
 
-	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
+	if ((ret = sym_ptr_pop(microjs->tab, &ptr)) < 0)
 		return ret;
 
-	DCC_LOG1(LOG_INFO, "tmp.len=%d", tmp.len);
-
-	if ((obj = sym_obj_lookup(microjs->tab, tmp.s, tmp.len)) == NULL)
+	if ((obj = ptr.obj) == NULL)
 		return -ERR_VAR_UNKNOWN;
 
-	if ((obj->flags & SYM_OBJ_GLOBAL) == 0) {
+	if (!SYM_IS_GLOBAL(obj) && !SYM_IS_CONST(obj)) {
 		/* Alloc and initialize local variable */
 #if MICROJS_OPTIMIZATION_ENABLED
 		microjs->spc = microjs->pc; /* save code pointer */
@@ -237,10 +245,10 @@ int op_pop_tmp(struct microjs_sdt * microjs)
 		microjs->code[microjs->pc++] = OPC_I4 + 0;
 		return tgt_stack_push(microjs);
 	}
-//	return sym_tmp_pop(microjs->tab, NULL);
 
 	return 0;
 }
+
 
 /* --------------------------------------------------------------------------
    Scoping
@@ -334,6 +342,7 @@ int op_blk_close(struct microjs_sdt * microjs)
 
 int op_var_decl(struct microjs_sdt * microjs)
 {
+	struct sym_ptr ptr;
 	struct sym_obj * obj;
 	int addr;
 
@@ -365,24 +374,28 @@ int op_var_decl(struct microjs_sdt * microjs)
 	/* initial variables are int */
 	obj->size = SIZEOF_WORD;
 	/* flag as allocated */
-	obj->flags |= SYM_OBJ_ALLOC;
+	obj->flags |= SYM_STORE_DATA;
 
 	TRACEF(".WORD \"%s\" (%04x)\n", 
 		   sym_obj_name(microjs->tab, obj), obj->addr);
-	return 0;
+
+	/* Push a reference into stack for possible iniialization */
+	ptr.obj = obj;
+	return sym_ptr_push(microjs->tab, &ptr);
 }
 
 int op_var_eval(struct microjs_sdt * microjs)
 {
 	struct sym_obj * obj;
-	struct sym_tmp tmp;
+	struct sym_ptr ptr;
 	int ret;
 
-	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
+	/* get reference to the variable */
+	if ((ret = sym_ptr_pop(microjs->tab, &ptr)) < 0)
 		return ret;
 
-	if ((obj = sym_obj_lookup(microjs->tab, tmp.s, tmp.len)) == NULL)
-		return -ERR_VAR_UNKNOWN;
+	if ((obj = ptr.obj) == NULL)
+		return -ERR_GENERAL;
 
 	if (!SYM_OBJ_IS_INT(obj))
 		return -ERR_NOT_VARIABLE;
@@ -417,25 +430,25 @@ int op_var_eval(struct microjs_sdt * microjs)
 int op_var_assign(struct microjs_sdt * microjs)
 {
 	struct sym_obj * obj;
-	struct sym_tmp tmp;
+	struct sym_ptr ptr;
 	int ret;
 
-	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
+	/* get reference to the variable */
+	if ((ret = sym_ptr_pop(microjs->tab, &ptr)) < 0)
 		return ret;
 
-	DCC_LOG1(LOG_INFO, "tmp.len=%d", tmp.len);
-
-	if ((obj = sym_obj_lookup(microjs->tab, tmp.s, tmp.len)) == NULL)
-		return -ERR_VAR_UNKNOWN;
+	if ((obj = ptr.obj) == NULL)
+		return -ERR_GENERAL;
 
 	if (!SYM_OBJ_IS_INT(obj))
 		return -ERR_NOT_VARIABLE;
+
 
 #if MICROJS_OPTIMIZATION_ENABLED
 	microjs->spc = microjs->pc;        /* save code pointer */
 #endif
 
-	if ((obj->flags & SYM_OBJ_GLOBAL)) {
+	if (SYM_IS_GLOBAL(obj)) {
 		unsigned int addr;
 
 		addr = (obj->addr >> 2) & 0x0fff;
@@ -459,19 +472,19 @@ int op_var_assign(struct microjs_sdt * microjs)
 int op_var_init(struct microjs_sdt * microjs)
 {
 	struct sym_obj * obj;
-	struct sym_tmp tmp;
+	struct sym_ptr ptr;
 	int ret;
 
-	if ((ret = sym_tmp_pop(microjs->tab, &tmp)) < 0)
+	/* get reference to the variable */
+	if ((ret = sym_ptr_pop(microjs->tab, &ptr)) < 0)
 		return ret;
 
-	DCC_LOG1(LOG_INFO, "tmp.len=%d", tmp.len);
-
-	if ((obj = sym_obj_lookup(microjs->tab, tmp.s, tmp.len)) == NULL)
-		return -ERR_VAR_UNKNOWN;
+	if ((obj = ptr.obj) == NULL)
+		return -ERR_GENERAL;
 
 	if (!SYM_OBJ_IS_INT(obj))
 		return -ERR_NOT_VARIABLE;
+
 
 #if MICROJS_OPTIMIZATION_ENABLED
 	microjs->spc = microjs->pc;        /* save code pointer */
@@ -492,6 +505,89 @@ int op_var_init(struct microjs_sdt * microjs)
 	return 0;
 }
 
+/* --------------------------------------------------------------------------
+   Constants
+   -------------------------------------------------------------------------- */
+
+/* Variable declaration.
+   Allocate a new integer in the symbol table. */
+
+int op_const_decl(struct microjs_sdt * microjs)
+{
+	struct sym_obj * obj;
+	struct sym_ptr ptr;
+
+	if ((obj = sym_obj_scope_lookup(microjs->tab, microjs->tok.s, 
+						   microjs->tok.qlf)) != NULL) {
+		DCC_LOG(LOG_INFO, "object exist in current scope!");
+		return -1;
+	}
+
+	if ((obj = sym_obj_new(microjs->tab, microjs->tok.s, 
+						   microjs->tok.qlf)) == NULL) {
+		DCC_LOG(LOG_INFO, "sym_obj_new() failed!");
+		return -ERR_OBJ_NEW_FAIL;
+	}
+	
+	obj->flags |= SYM_STORE_CONST;
+
+	INF("const %s", obj->nm);
+	/* Push a reference into stack for possible initialization */
+	ptr.obj = obj;
+	return sym_ptr_push(microjs->tab, &ptr);
+}
+
+int op_const_eval(struct microjs_sdt * microjs)
+{
+	struct sym_obj * obj;
+	struct sym_ptr ptr;
+	int32_t val;
+	int ret;
+
+	/* get reference to the constant */
+	if ((ret = sym_ptr_pop(microjs->tab, &ptr)) < 0)
+		return ret;
+
+	if ((obj = ptr.obj) == NULL)
+		return -ERR_GENERAL;
+
+	INF("obj=%s", obj->nm);
+
+	if (!SYM_IS_CONST(obj))
+		return -ERR_NOT_CONST;
+
+	val = sym_val_get(obj);
+	encode_int(microjs, val); 
+	
+	return 0;
+}
+
+int op_const_init(struct microjs_sdt * microjs)
+{
+	struct sym_obj * obj;
+	struct sym_ptr ptr;
+	int ret;
+
+	/* get reference to the variable */
+	if ((ret = sym_ptr_pop(microjs->tab, &ptr)) < 0)
+		return ret;
+
+	if ((obj = ptr.obj) == NULL)
+		return -ERR_GENERAL;
+
+	INF("obj=%s", obj->nm);
+
+	if (!SYM_IS_CONST(obj))
+		return -ERR_NOT_CONST;
+
+	sym_val_set(obj, (int32_t)microjs->tok.u32);
+	
+	return 0;
+}
+
+/* --------------------------------------------------------------------------
+   Objects
+   -------------------------------------------------------------------------- */
 
 int op_object_get(struct microjs_sdt * microjs)
 {
@@ -952,7 +1048,7 @@ int op_ret_discard(struct microjs_sdt * microjs)
 	return tgt_stack_adjust(microjs, -call.retcnt);
 }
 
-int op_call_ret(struct microjs_sdt * microjs)
+int op_ret_val(struct microjs_sdt * microjs)
 {
 	struct sym_call call;
 	int ret;
@@ -1492,6 +1588,39 @@ int op_if_else(struct microjs_sdt * microjs)
 }
 
 /* --------------------------------------------------------------------------
+   Loops 
+   -------------------------------------------------------------------------- */
+
+int op_loop_break(struct microjs_sdt * microjs)
+{
+	return -1;
+}
+
+int op_loop_continue(struct microjs_sdt * microjs)
+{
+	return -1;
+}
+
+/* --------------------------------------------------------------------------
+   Do While Loop 
+   -------------------------------------------------------------------------- */
+
+int op_do_while_begin(struct microjs_sdt * microjs)
+{
+	return -1;
+}
+
+int op_do_while_cond(struct microjs_sdt * microjs)
+{
+	return -1;
+}
+
+int op_do_while_end(struct microjs_sdt * microjs)
+{
+	return -1;
+}
+
+/* --------------------------------------------------------------------------
    While Loop 
    -------------------------------------------------------------------------- */
 
@@ -1723,8 +1852,9 @@ int op_fun_def(struct microjs_sdt * microjs)
 	fun->addr = microjs->pc;
 	/* FIXME: using the size field to count arguments */
 	fun->size = 0;
-	/* flag as allocated */
-	fun->flags |= SYM_OBJ_ALLOC | SYM_OBJ_FUNCTION;
+	/* XXX: don't flag as allocated just now, use this info 
+	   to prevent recursive calls. */
+	fun->flags |= SYM_OBJ_FUNCTION;
 
 	TRACEF(".FUNC \"%s\" (%04x)\n", 
 		   sym_obj_name(microjs->tab, fun), fun->addr);
@@ -1734,18 +1864,6 @@ int op_fun_def(struct microjs_sdt * microjs)
 	/* Alloc a temporary reference for the loop jump */
 	return sym_ref_push(microjs->tab, &ref);
 }
-
-int op_fun_end(struct microjs_sdt * microjs)
-{
-	struct sym_obj * fun = sym_obj_scope_get(microjs->tab);
-
-	DCC_LOG(LOG_TRACE, "");
-
-	TRACEF(".END \"%s\"\n", sym_obj_name(microjs->tab, fun));
-
-	return 0;
-}
-
 
 /* Function argument declaration. */
 int op_arg_decl(struct microjs_sdt * microjs)
@@ -1765,8 +1883,8 @@ int op_arg_decl(struct microjs_sdt * microjs)
 	obj->addr = microjs->stack_pos;
 	/* initial variables are int */
 	obj->size = SIZEOF_WORD;
-	/* flag as allocated */
-	obj->flags |= SYM_OBJ_ALLOC;
+	/* storage class */
+	obj->flags |= SYM_STORE_STACK;
 
 	DCC_LOG1(LOG_INFO, "addr=0x%04x", obj->addr);
 	TRACEF(".ARG \"%s\" (%04x)\n", 
@@ -1783,18 +1901,82 @@ int op_arg_decl(struct microjs_sdt * microjs)
 int op_return(struct microjs_sdt * microjs)
 {
 	struct sym_obj * fun = sym_obj_scope_get(microjs->tab);
+
+	if (SYM_FUN_RETURN(fun) == FUN_RETVAL) {
+		/* Incompatible return/return val; */
+		return -ERR_RETVAL_RETURN;
+	}
+
+	/* FIXME: using lower bit of flags to indicate return */ 
+	fun->flags |= FUN_RETURN;
+
+	if (sym_scope_level(microjs->tab) == 1) {
+		/* function scope return, any remaining code is dead */
+		fun->flags |= FUN_DEADCODE;
+	}	
+
+#if MICROJS_OPTIMIZATION_ENABLED
+	microjs->spc = microjs->pc; /* save code pointer */
+#endif
+	TRACEF("%04x\tUNLK\n", microjs->pc);
+	microjs->code[microjs->pc++] = OPC_UNLK;
+
+	return 0;
+}
+
+int op_retval(struct microjs_sdt * microjs)
+{
+	struct sym_obj * fun = sym_obj_scope_get(microjs->tab);
+
+	if (SYM_FUN_RETURN(fun) == FUN_RETURN) {
+		/* Incompatible return/return val; */
+		return -ERR_RETVAL_RETURN;
+	}
+
+	/* FIXME: using lower bit of flags to indicate return value */ 
+	fun->flags |= FUN_RETVAL;
+
+	if (sym_scope_level(microjs->tab) == 1) {
+		/* function scope return, any remaining code is dead */
+		fun->flags |= FUN_DEADCODE;
+	}	
+
+#if MICROJS_OPTIMIZATION_ENABLED
+	microjs->spc = microjs->pc; /* save code pointer */
+#endif
+	TRACEF("%04x\tUNLK\n", microjs->pc);
+	microjs->code[microjs->pc++] = OPC_UNLK;
+
+	return 0;
+}
+
+int op_fun_end(struct microjs_sdt * microjs)
+{
+	struct sym_obj * fun = sym_obj_scope_get(microjs->tab);
 	int pos;
 	int offs;
 	int ret;
 
+	DCC_LOG(LOG_TRACE, "");
 
-	if ((fun->flags & 3) == 3) {
-		return -1;
+	TRACEF(".END \"%s\"\n", sym_obj_name(microjs->tab, fun));
+
+	if ((SYM_FUN_RETURN(fun) == FUN_RETVAL) && 
+		!(fun->flags & FUN_DEADCODE)) {
+		/* The last valid statement of a function returning value should 
+		   be retun <val>; */
+		return -ER_RETVAL_MISSING;
 	}
-
-	/* FIXME: using lower bit of flags to indicate return value */ 
-	fun->flags |= 2;
-
+	
+	if (!(fun->flags & FUN_DEADCODE)) {
+		/* no function scope return found, add the unlink 
+		   opcode here */
+#if MICROJS_OPTIMIZATION_ENABLED
+		microjs->spc = microjs->pc; /* save code pointer */
+#endif
+		TRACEF("%04x\tUNLK\n", microjs->pc);
+		microjs->code[microjs->pc++] = OPC_UNLK;
+	}
 
 	/* restore the stack frame */
 	if ((ret = sym_sf_pop(microjs->tab)) < 0)
@@ -1816,37 +1998,8 @@ int op_return(struct microjs_sdt * microjs)
 		microjs->code[microjs->pc++] = offs >> 4;
 	}
 
-#if MICROJS_OPTIMIZATION_ENABLED
-	microjs->spc = microjs->pc; /* save code pointer */
-#endif
-	TRACEF("%04x\tUNLK\n", microjs->pc);
-	/* reserve 2 positions for opcode + jump address */
-	microjs->code[microjs->pc++] = OPC_UNLK;
-
 	return 0;
 }
-
-int op_retval(struct microjs_sdt * microjs)
-{
-	struct sym_obj * fun = sym_obj_scope_get(microjs->tab);
-
-	if ((fun->flags & 3) == 2) {
-		return -1;
-	}
-
-	/* FIXME: using lower bit of flags to indicate return value */ 
-	fun->flags |= 3;
-
-#if MICROJS_OPTIMIZATION_ENABLED
-	microjs->spc = microjs->pc; /* save code pointer */
-#endif
-	TRACEF("%04x\tUNLK\n", microjs->pc);
-	/* reserve 2 positions for opcode + jump address */
-	microjs->code[microjs->pc++] = OPC_UNLK;
-
-	return 0;
-}
-
 
 /* Syntax-directed translator */
 /* Nonrecursive predictive parser */
@@ -1871,10 +2024,13 @@ int microjs_compile(struct microjs_sdt * microjs,
 	ll_sl = (uint8_t *)microjs + sizeof(struct microjs_sdt);
 	ll_top = (uint8_t *)microjs + microjs->size;
 
+	INF("starting lexer...");
+
 	/* start the lexer */
 	lexer_open(lex, txt, len);
+
 	/* */
-	lookahead = (tok = lexer_scan(lex)).typ;
+	lookahead = (tok = lexer2_scan(lex, microjs->tab)).typ;
 	if (lookahead == T_ERR) {
 		err = -tok.qlf;
 		goto error;
@@ -1883,10 +2039,15 @@ int microjs_compile(struct microjs_sdt * microjs,
 	while (ll_sp != ll_top) {
 		/* pop the stack */
 		sym = *ll_sp++;
+
 #if MICROJS_TRACE_ENABLED
 		DCC_LOG1(LOG_MSG, "<%d>", sym);
 #endif
+		YAP("<%d>", sym);
+
 		if IS_A_TERMINAL(sym) {
+			YAP("terminal");
+
 			/* terminal */
 			if (sym != lookahead) {
 				err = -ERR_UNEXPECTED_SYMBOL;
@@ -1895,12 +2056,14 @@ int microjs_compile(struct microjs_sdt * microjs,
 			/* save the lookahead token */
 			microjs->tok = tok;
 			/* get next token */
-			lookahead = (tok = lexer_scan(lex)).typ;
+			lookahead = (tok = lexer2_scan(lex, microjs->tab)).typ;
 			if (lookahead == T_ERR) {
 				err = -tok.qlf;
 				goto error;
 			}
 		} else if IS_AN_ACTION(sym) {
+			YAP("action");
+
 			/* action */
 			if ((err = microjs_ll_op[ACTION(sym)](microjs)) < 0) {
 				DCC_LOG(LOG_INFO, "syntax action failed!");
@@ -1914,6 +2077,7 @@ int microjs_compile(struct microjs_sdt * microjs,
 				goto error;
 			}
 		} else {
+			YAP("non terminal");
 			/* non terminal */
 			if ((k = microjs_ll_push(ll_sp, sym, lookahead)) < 0) {
 				DCC_LOG2(LOG_INFO, "sym=%d lookahed=%d", sym, lookahead);

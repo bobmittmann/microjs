@@ -174,7 +174,7 @@
 #define ACTION(_X) (0)
 #endif
 
-extern const const char * const microjs_ll_sym[];
+extern const char * const microjs_ll_sym[];
 
 #ifdef __cplusplus
 extern "C" {
