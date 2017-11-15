@@ -77,7 +77,7 @@
 	fprintf(stderr, " DBG: %s: " __FMT "\n", __FUNCTION__, ## __VA_ARGS__); \
 	fflush(stderr); }} while (0)
 
-#define DBG5(__FMT, ...) do { if (DEBUG >= _DBG5_)  { \
+#define YAP(__FMT, ...) do { if (DEBUG >= _DBG5_)  { \
 	fprintf(stderr, " DBG: %s: " __FMT "\n", __FUNCTION__, ## __VA_ARGS__); \
 	fflush(stderr); }} while (0)
 

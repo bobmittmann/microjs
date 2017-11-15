@@ -308,6 +308,7 @@ struct token lexer_scan(struct lexer * lex)
 
 		if (c == '|') {
 			if (++off < len)	{
+				c = txt[off];
 				if  (c == '|') {
 					typ = T_LOGICOR;
 					goto inc_ret;
@@ -319,6 +320,7 @@ struct token lexer_scan(struct lexer * lex)
 
 		if (c == '&') {
 			if (++off < len)	{
+				c = txt[off];
 				if  (c == '&') {
 					typ = T_LOGICAND;
 					goto inc_ret;

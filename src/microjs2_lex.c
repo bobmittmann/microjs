@@ -38,7 +38,11 @@ const struct {
 	uint8_t typ;
 	char nm[9];
 } lex_keyword[] = {
+	{ T_BREAK,    "break" },
 	{ T_CATCH,    "catch" },
+	{ T_CONST,    "const" },
+	{ T_CONTINUE, "continue" },
+	{ T_DO,       "do" },
 	{ T_ELSE,     "else" },
 	{ T_FALSE,    "false" },
 	{ T_FOR,      "for" },
@@ -61,7 +65,7 @@ int lexer_open(struct lexer * lex, const char * txt, unsigned int len)
 	return 0;
 }
 
-struct token lexer_scan(struct lexer * lex)
+struct token lexer2_scan(struct lexer * lex, struct symtab * tab)
 {
 	struct token tok;
 	unsigned int off;
@@ -123,6 +127,7 @@ struct token lexer_scan(struct lexer * lex)
 
 		/* keywork or identifier */
 		if (isalpha(c) || (c == '_')) {
+			struct sym_obj * obj;
 			unsigned int k;
 			unsigned int n; /* length of the symbol */
 			char * s;
@@ -135,17 +140,42 @@ struct token lexer_scan(struct lexer * lex)
 			s = (char *)&txt[k];
 
 			qlf = n;
-			typ = T_ID;
-			tok.s = (char *)&txt[k];
-
 			/* look up in the kwywords table */
 			for (k = 0; k <= (sizeof(lex_keyword) / 10); ++k) {
 				if ((strncmp(lex_keyword[k].nm, s, n) == 0) 
 					&& (lex_keyword[k].nm[n] == '\0')) {
 					typ = lex_keyword[k].typ;
 					tok.s = (char *)lex_keyword[k].nm;
+					goto ret;
 				}
 			}
+			
+			typ = T_ID;
+			tok.s = s;
+	
+			INF("ID %c%c, n=%d", s[0], s[1], n);
+
+			/* Lookup for an existing identifier */
+			if ((obj = sym_obj_lookup(tab, s, n)) != NULL) {
+				if (SYM_IS_CONST(obj)) {
+					typ = T_CONST_ID;
+					tok.obj = obj;
+					INF("const %s", obj->nm);
+				} else if (SYM_OBJ_IS_INT(obj)) {
+					typ = T_VAR_ID;
+					tok.obj = obj;
+					INF("var %s", obj->nm);
+				} else if (SYM_OBJ_IS_FUNCTION(obj)) {
+					typ = T_FUNC_ID;
+					tok.obj = obj;
+					INF("function %s", obj->nm);
+				} else {
+					WARN("???");
+				}
+			} else {
+				INF("new id?");
+			}
+
 
 			goto ret;
 		}
@@ -252,6 +282,11 @@ struct token lexer_scan(struct lexer * lex)
 				}
 				continue;
 			} 
+
+			if  (c == '=') {
+				typ = T_DIV_EQ;
+				goto inc_ret;
+			}
 			
 			typ = T_SLASH;
 			goto ret;
@@ -309,9 +344,14 @@ struct token lexer_scan(struct lexer * lex)
 		}
 
 		if (c == '|') {
-			if (++off < len)	{
+			if (++off < len) { 
+				c = txt[off];
 				if  (c == '|') {
 					typ = T_LOGICOR;
+					goto inc_ret;
+				}
+				if  (c == '=') {
+					typ = T_OR_EQ;
 					goto inc_ret;
 				}
 			}
@@ -321,12 +361,62 @@ struct token lexer_scan(struct lexer * lex)
 
 		if (c == '&') {
 			if (++off < len)	{
+				c = txt[off];
 				if  (c == '&') {
 					typ = T_LOGICAND;
 					goto inc_ret;
 				}
+				if  (c == '=') {
+					typ = T_AND_EQ;
+					goto inc_ret;
+				}
 			}
 			typ = T_AMPERSAND;
+			goto ret;
+		}
+
+		if (c == '*') {
+			if ((++off < len) && ((c = txt[off]) == '=')) {
+				typ = T_MUL_EQ;
+				goto inc_ret;
+			}
+			typ = T_STAR;
+			goto ret;
+		}
+
+		if (c == '%') {
+			if ((++off < len) && ((c = txt[off]) == '=')) {
+				typ = T_MOD_EQ;
+				goto inc_ret;
+			}
+			typ = T_PERCENT;
+			goto ret;
+		}
+
+		if (c == '^') {
+			if ((++off < len) && ((c = txt[off]) == '=')) {
+				typ = T_XOR_EQ;
+				goto inc_ret;
+			}
+			typ = T_CARET;
+			goto ret;
+		}
+
+		if (c == '+') {
+			if ((++off < len) && ((c = txt[off]) == '=')) {
+				typ = T_ADD_EQ;
+				goto inc_ret;
+			}
+			typ = T_PLUS;
+			goto ret;
+		}
+
+		if (c == '-') {
+			if ((++off < len) && ((c = txt[off]) == '=')) {
+				typ = T_SUB_EQ;
+				goto inc_ret;
+			}
+			typ = T_MINUS;
 			goto ret;
 		}
 

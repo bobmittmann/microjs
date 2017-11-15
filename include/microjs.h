@@ -74,7 +74,10 @@ enum {
 	ERR_NOT_FUNCTION        = 38,
 	ERR_NOT_VARIABLE        = 39,
 	ERR_FUNCTION_UNKNOWN    = 40,
-	ERR_OBJ_DEFINED         = 41
+	ERR_OBJ_DEFINED         = 41,
+	ERR_NOT_CONST           = 42,
+	ERR_RETVAL_RETURN       = 43,
+	ER_RETVAL_MISSING       = 44
 };
 
 struct symstat {
@@ -182,13 +185,14 @@ extern "C" {
    Strings 
    -------------------------------------------------------------------------- */
 
+/* Get a string from reference index (key) */
 const char * str(unsigned int idx);
 
+/* Add a new string into poll */
 int str_add(const char * s, unsigned int len);
 
+/* Look up for a string, returns the key if exists, -1 otherwise */
 int str_lookup(const char * s, unsigned int len);
-
-int cstr_decode(char * dst, const char * src, unsigned int len);
 
 int cstr_add(const char * s, unsigned int len);
 

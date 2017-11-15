@@ -35,6 +35,8 @@
 #error "Never use <microjs-i.h> directly; include <microjs.h> instead."
 #endif
 
+#define DEBUG 7
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -52,6 +54,10 @@
 
 #ifndef MICROJS_STRINGS_ENABLED
 #define MICROJS_STRINGS_ENABLED 1
+#endif
+
+#ifndef MICROJS_USRLIB_ENABLED
+#define MICROJS_USRLIB_ENABLED 0
 #endif
 
 #ifndef MICROJS_FUNCTIONS_ENABLED
@@ -90,10 +96,6 @@
 #define MICROJS_OPTIMIZATION_ENABLED 1
 #endif
 
-#ifndef MICROJS_FUNCTIONS_ENABLED
-#define MICROJS_FUNCTIONS_ENABLED 0
-#endif
-
 #if (MICROJS_TRACE_ENABLED)
 #define	TRACEF(__FMT, ...) do { \
 	fprintf(stdout, __FMT, ## __VA_ARGS__); \
@@ -105,6 +107,11 @@
 #else 
 #define TRACEF(__FMT, ...) do { } while (0)
 #define	FTRACEF(__F, __FMT, ...) do { } while (0)
+#endif
+
+#if MICROJS_FUNCTIONS_ENABLED
+	#undef MICROJS_USRLIB_ENABLED
+	#define MICROJS_USRLIB_ENABLED 1
 #endif
 
 /* --------------------------------------------------------------------------
@@ -121,6 +128,9 @@ struct lexer {
    Compiler 
    -------------------------------------------------------------------------- */
 
+/* symbol table object */
+struct sym_obj;
+
 struct token {
 	uint8_t typ; /* token type (class) */
 	uint8_t qlf; /* qualifier */
@@ -129,6 +139,7 @@ struct token {
 		char * s;
 		uint32_t u32;	
 		int32_t i32;	
+		struct sym_obj * obj;	
 	};
 };
 
@@ -169,33 +180,57 @@ struct strbuf {
    Symbol table 
    -------------------------------------------------------------------------- */
 
-#define SYM_OBJ_ALLOC       (1 << 7)
-#define SYM_OBJ_GLOBAL      (1 << 6)
-#define SYM_OBJ_INT         (0x0 << 4)
-#define SYM_OBJ_STR         (0x1 << 4)
-#define SYM_OBJ_INT_ARRAY   (0x2 << 4)
-#define SYM_OBJ_FUNCTION    (0x3 << 4)
+#define SYM_OBJ_GLOBAL      (1 << 7)
 
-#define SYM_OBJ_TYPE_MASK   (0x3 << 4)
+#define SYM_STORE_STACK     (0x0 << 5)
+#define SYM_STORE_CONST     (0x1 << 5)
+#define SYM_STORE_DATA      (0x2 << 5)
+#define SYM_STORE_LIB       (0x3 << 5)
+
+#define SYM_STORE_MASK      (0x3 << 5)
+#define SYM_STORE(SYM)      ((SYM)->flags & SYM_STORE_MASK) 
+
+#define SYM_IN_STACK(SYM)   (SYM_STORE(obj) == SYM_STORE_STACK)
+#define SYM_IN_DATA(SYM)    (SYM_STORE(obj) == SYM_STORE_DATA)
+#define SYM_IS_CONST(SYM)   (SYM_STORE(obj) == SYM_STORE_CONST)
+#define SYM_IN_LIB(SYM)     (SYM_STORE(obj) == SYM_STORE_LIB)
+
+/* -------------------------------------------------------------- */
+#define SYM_OBJ_INT         (0x0 << 3)
+#define SYM_OBJ_STR         (0x1 << 3)
+#define SYM_OBJ_INT_ARRAY   (0x2 << 3)
+#define SYM_OBJ_FUNCTION    (0x3 << 3)
+
+#define SYM_OBJ_TYPE_MASK   (0x3 << 3)
 #define SYM_OBJ_TYPE(SYM)   ((SYM)->flags & SYM_OBJ_TYPE_MASK) 
 #define SYM_OBJ_IS_STR(SYM) (SYM_OBJ_TYPE(SYM) == SYM_OBJ_STR)
 #define SYM_OBJ_IS_INT(SYM) (SYM_OBJ_TYPE(SYM) == SYM_OBJ_INT)
 
 #define SYM_OBJ_IS_FUNCTION(SYM)    (SYM_OBJ_TYPE(SYM) == SYM_OBJ_FUNCTION)
 #define SYM_OBJ_IS_INT(SYM)         (SYM_OBJ_TYPE(SYM) == SYM_OBJ_INT)
-#define SYM_OBJ_IS_GLOBAL(SYM)      ((SYM) & SYM_OBJ_GLOBAL)
+#define SYM_IS_GLOBAL(SYM)      (((SYM)->flags & SYM_OBJ_GLOBAL) != 0)
+
+/* Function flags */
+#define SYM_FUN_RETURN(SYM)  ((SYM)->flags & 3) 
+#define FUN_RETURN    (1 << 0) /* non valued return stat found inside function */
+#define FUN_RETVAL    (1 << 1) /* valued return stat found inside function */
+#define FUN_DEADCODE  (1 << 2) /* return statement of outer function socpe */
 
 /* object */
 struct sym_obj {
 	uint8_t prev;
 	uint8_t flags;
-	uint16_t addr;
 	union {
-		uint16_t size;
-		struct {
-			uint8_t argc; /* Function argument count */
-			uint8_t retc; /* Function return count */
+		uint16_t addr;
+		union {
+			uint16_t size;
+			struct {
+				uint8_t argc; /* Function argument count */
+				uint8_t retc; /* Function return count */
+			};
 		};
+		int32_t ival;
+		float fval;
 	};
 	char nm[0];
 } __attribute__((packed))__;
@@ -225,6 +260,12 @@ struct symtab {
 struct sym_tmp {
 	char * s;
 	uint8_t len;
+};
+
+/* symbol reference, this represent a pointer to a symbol
+   in the symbol table itself */
+struct sym_ptr {
+	struct sym_obj * obj;
 };
 
 /* object reference, this represent a pointer to a 
@@ -310,6 +351,8 @@ extern "C" {
 
 int lexer_open(struct lexer * lex, const char * txt, unsigned int len);
 
+struct token lexer2_scan(struct lexer * lex, struct symtab * tab);
+
 struct token lexer_scan(struct lexer * lex);
 
 void lexer_print_err(FILE * f, struct lexer * lex, int err);
@@ -376,7 +419,8 @@ int sym_sf_push(struct symtab * tab);
 
 int sym_sf_pop(struct symtab * tab);
 
-void sym_sf_get(struct symtab * tab, struct sym_sf * sf);
+/* Count the number of stack frames in the table */
+int sym_scope_level(struct symtab * tab);
 
 /* --------------------------------------------------------------------------
    Push/Pop addresses from/to stack
@@ -476,10 +520,29 @@ static inline int sym_tmp_pop(struct symtab * tab, struct sym_tmp * tmp) {
 	return sym_pop(tab, tmp, sizeof(struct sym_tmp));
 }
 
+static inline int sym_ptr_push(struct symtab * tab, struct sym_ptr * ptr) {
+	return sym_push(tab, ptr, sizeof(struct sym_ptr));
+}
+
+static inline int sym_ptr_pop(struct symtab * tab, struct sym_ptr * ptr) {
+	return sym_pop(tab, ptr, sizeof(struct sym_ptr));
+}
+
 /* --------------------------------------------------------------------------
-   Externals (Library)
+   Constant values 
    -------------------------------------------------------------------------- */
 
+static inline void sym_val_set(struct sym_obj * obj, int32_t val) {
+	obj->ival = val;
+}
+
+static inline int32_t sym_val_get(struct sym_obj * obj) {
+	return (int32_t)(obj->ival);
+}
+
+/* --------------------------------------------------------------------------
+   Externals (System Library)
+   -------------------------------------------------------------------------- */
 
 static inline struct classdef * lib_classdef_get(
 	const struct ext_libdef * libdef, int cid) {

@@ -76,6 +76,9 @@ static const char * const err_tab[] = {
 	[ERR_NOT_VARIABLE] = "symbol is not a variable",
 	[ERR_FUNCTION_UNKNOWN] = "unknown function",
 	[ERR_OBJ_DEFINED] = "symbol already defined",
+	[ERR_NOT_CONST] = "symbol is not a constant",
+	[ERR_RETVAL_RETURN] = "iconsistent valued/non-valued return",
+	[ER_RETVAL_MISSING] = "missing return statement"
 };
 
 const char * microjs_strerr(int err)

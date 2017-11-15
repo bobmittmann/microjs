@@ -233,8 +233,32 @@ int sym_sf_pop(struct symtab * tab)
 	return 0;
 }
 
+/* Count the number of stack frames in the table */
+int sym_scope_level(struct symtab * tab)
+{
+	unsigned int cnt = 0;
+	struct sym_sf sf;
+	uint8_t * dst;
+	uint8_t * src;
+	int fp; 
+
+	fp = tab->fp; /* use frame pointer as reference */
+	while (fp < tab->top) {
+		unsigned int i;
+		src = (uint8_t *)&tab->buf + fp;
+		dst = (uint8_t *)&sf;
+		for(i = 0; i < sizeof(sf); ++i)
+			dst[i] = src[i];
+		/* next frame */
+		fp = sf.prev;
+		cnt++;
+	}
+
+	return cnt;
+}
+
 /* Pick a stack frame */
-void sym_sf_get(struct symtab * tab, struct sym_sf * sf)
+static void sym_sf_get(struct symtab * tab, struct sym_sf * sf)
 {
 	if (tab->fp >= tab->top) {
 		sf->prev = 0;
@@ -343,9 +367,16 @@ int symtab_dump(FILE * f, struct symtab * tab)
 	/* search from the inner scope out */
 	while (obj->prev != 0) { 
 		obj = (struct sym_obj *)((void *)obj - obj->prev);
-		fprintf(f, "%04x %c O .data   %04x    %s\n", obj->addr, 
-				(obj->flags & SYM_OBJ_GLOBAL) ? 'g' : 'l',
-				obj->size, obj->nm);
+
+		if (SYM_IS_CONST(obj)) { 
+			fprintf(f, "%04x %c O .data   %04x    %s\n", sym_val_get(obj), 
+					(obj->flags & SYM_OBJ_GLOBAL) ? 'g' : 'l',
+					0, obj->nm);
+		} else {
+			fprintf(f, "%04x %c O .data   %04x    %s\n", obj->addr, 
+					(obj->flags & SYM_OBJ_GLOBAL) ? 'g' : 'l',
+					obj->size, obj->nm);
+		}
 	}
 
 	return 0;

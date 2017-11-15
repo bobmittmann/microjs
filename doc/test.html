@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Bob Mittmann">
+  <title>MicroJS - User Guide</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="pandoc.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">MicroJS - User Guide</h1>
+<p class="author">Bob Mittmann</p>
+<p class="date">October 2017</p>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#comments"><span class="toc-section-number">2</span> Comments</a></li>
+<li><a href="#variables"><span class="toc-section-number">3</span> Variables</a><ul>
+<li><a href="#boolean"><span class="toc-section-number">3.1</span> Boolean</a></li>
+</ul></li>
+<li><a href="#operators"><span class="toc-section-number">4</span> Operators</a><ul>
+<li><a href="#arithmetic-operators"><span class="toc-section-number">4.1</span> Arithmetic Operators</a></li>
+<li><a href="#logic-operators"><span class="toc-section-number">4.2</span> Logic Operators</a></li>
+<li><a href="#bitwise-operators"><span class="toc-section-number">4.3</span> Bitwise Operators</a></li>
+<li><a href="#numeric-comparison"><span class="toc-section-number">4.4</span> Numeric Comparison</a></li>
+<li><a href="#operators-precedence"><span class="toc-section-number">4.5</span> Operators Precedence</a></li>
+</ul></li>
+<li><a href="#strings"><span class="toc-section-number">5</span> Strings</a></li>
+<li><a href="#functions"><span class="toc-section-number">6</span> Functions</a></li>
+<li><a href="#control-flow"><span class="toc-section-number">7</span> Control Flow</a></li>
+<li><a href="#scope-of-variables"><span class="toc-section-number">8</span> Scope of Variables</a><ul>
+<li><a href="#global-scope"><span class="toc-section-number">8.1</span> Global Scope</a></li>
+<li><a href="#local-scope"><span class="toc-section-number">8.2</span> Local Scope</a></li>
+</ul></li>
+<li><a href="#constants"><span class="toc-section-number">9</span> Constants</a></li>
+<li><a href="#vectors"><span class="toc-section-number">10</span> Vectors</a></li>
+<li><a href="#methods"><span class="toc-section-number">11</span> Methods</a></li>
+<li><a href="#system-libraries"><span class="toc-section-number">12</span> System Libraries</a></li>
+<li><a href="#user-libraries"><span class="toc-section-number">13</span> User Libraries</a></li>
+<li><a href="#examples"><span class="toc-section-number">14</span> Examples</a><ul>
+<li><a href="#example-1"><span class="toc-section-number">14.0.1</span> Example 1</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="introduction"><span class="header-section-number">1</span> Introduction</h1>
+<p>Deep embedded systems with stringent memory resources — comprising few kilobytes of memory – can take advantage of a fast compiled language like MircoJS for scripting.</p>
+<p>A common use for microjs is scripting on applications using small microcontrollers.</p>
+<p>The main advantage of compiling the code as oposed to interpret at runtime is the possibility of catching syntax errors before start executing the code, avoiding some undesirable situations where the script needs to abort because a late syntax error was catch. Besides that the compilation process is fast, since it is performed on a single pass. Despite that fact still some optimizations in the code in the vicinity of the current decoding (parsing) block is performed wich would be almost impossible for simple interpreters. The result is a fairly compact and fast code.</p>
+<h1 id="comments"><span class="header-section-number">2</span> Comments</h1>
+<p>Mulitline comments start with ’/*’ and ends with ’*’. Whereas single line comments are indicated by a double slash: ’//’.</p>
+<h1 id="variables"><span class="header-section-number">3</span> Variables</h1>
+<p>A variable, in MicroJS, always refers to a 32bits signed integer location in memory. Variables are declared using the keyword: “var”, followed by the name of the variable and an optional initial assignment. Multiple variables can be declared in a single var expression.</p>
+<p>Ex:</p>
+<pre><code>var i;
+
+var i = 0;
+
+var i, j;
+
+var i = 0, j = 1;</code></pre>
+<h2 id="boolean"><span class="header-section-number">3.1</span> Boolean</h2>
+<h1 id="operators"><span class="header-section-number">4</span> Operators</h1>
+<h2 id="arithmetic-operators"><span class="header-section-number">4.1</span> Arithmetic Operators</h2>
+<p>Those arithmetic operators are supported by MicroJS:</p>
+<table>
+<caption>Arithmetic Operators<span data-label="tab:operators"></span></caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span><strong>Expression</strong></span></th>
+<th style="text-align: left;"><span><strong>Name</strong></span></th>
+<th style="text-align: left;"><span><strong>Description</strong></span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><span>-x</span></td>
+<td style="text-align: left;">unary minus</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x + y</span></td>
+<td style="text-align: left;">binary plus</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span>x - y</span></td>
+<td style="text-align: left;">binary minus</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x * y</span></td>
+<td style="text-align: left;">times</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span>x / y</span></td>
+<td style="text-align: left;">divide</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x % y</span></td>
+<td style="text-align: left;">remainder</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<h2 id="logic-operators"><span class="header-section-number">4.2</span> Logic Operators</h2>
+<table>
+<caption>Logic Operators<span data-label="tab:operators"></span></caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span><strong>Expression</strong></span></th>
+<th style="text-align: left;"><span><strong>Name</strong></span></th>
+<th style="text-align: left;"><span><strong>Description</strong></span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><span>!x</span></td>
+<td style="text-align: left;">logic not</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x &amp;&amp; y</span></td>
+<td style="text-align: left;">logic and</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span>x || y</span></td>
+<td style="text-align: left;">logic or</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<h2 id="bitwise-operators"><span class="header-section-number">4.3</span> Bitwise Operators</h2>
+<table>
+<caption>Bitwise Operators<span data-label="tab:operators"></span></caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span><strong>Expression</strong></span></th>
+<th style="text-align: left;"><span><strong>Name</strong></span></th>
+<th style="text-align: left;"><span><strong>Description</strong></span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><span> x</span></td>
+<td style="text-align: left;">bitwise not</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x &amp; y</span></td>
+<td style="text-align: left;">bitwise and</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span>x | y</span></td>
+<td style="text-align: left;">bitwise or</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x  y</span></td>
+<td style="text-align: left;">bitwise xor (exclusive or)</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span>x &gt;&gt; y</span></td>
+<td style="text-align: left;">arithmetic shift right</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x &lt;&lt; y</span></td>
+<td style="text-align: left;">logical/arithmetic shift left</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<h2 id="numeric-comparison"><span class="header-section-number">4.4</span> Numeric Comparison</h2>
+<table>
+<caption>Numeric Comparison<span data-label="tab:operators"></span></caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span><strong>Expression</strong></span></th>
+<th style="text-align: left;"><span><strong>Name</strong></span></th>
+<th style="text-align: left;"><span><strong>Description</strong></span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><span>x == y </span></td>
+<td style="text-align: left;">equality</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x != y </span></td>
+<td style="text-align: left;">inequality</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span>x &lt; y </span></td>
+<td style="text-align: left;">less than</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x &lt;= y </span></td>
+<td style="text-align: left;">less than or equal to</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span>x &gt; y </span></td>
+<td style="text-align: left;">greater than</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span>x &gt;= y </span></td>
+<td style="text-align: left;">grater than or equal to</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<h2 id="operators-precedence"><span class="header-section-number">4.5</span> Operators Precedence</h2>
+<h1 id="strings"><span class="header-section-number">5</span> Strings</h1>
+<h1 id="functions"><span class="header-section-number">6</span> Functions</h1>
+<h1 id="control-flow"><span class="header-section-number">7</span> Control Flow</h1>
+<h1 id="scope-of-variables"><span class="header-section-number">8</span> Scope of Variables</h1>
+<h2 id="global-scope"><span class="header-section-number">8.1</span> Global Scope</h2>
+<h2 id="local-scope"><span class="header-section-number">8.2</span> Local Scope</h2>
+<h1 id="constants"><span class="header-section-number">9</span> Constants</h1>
+<h1 id="vectors"><span class="header-section-number">10</span> Vectors</h1>
+<h1 id="methods"><span class="header-section-number">11</span> Methods</h1>
+<h1 id="system-libraries"><span class="header-section-number">12</span> System Libraries</h1>
+<h1 id="user-libraries"><span class="header-section-number">13</span> User Libraries</h1>
+<h1 id="examples"><span class="header-section-number">14</span> Examples</h1>
+<h3 id="example-1"><span class="header-section-number">14.0.1</span> Example 1</h3>
+<pre language="uJS"><code>//
+// Generate the Fibonacci sequence up to the maximum 32 bits signed integer
+//
+
+var x0 = 0, x1 = 1, x;
+
+try {
+    var i = 1;
+    while (1) {
+        // Check whether the next sum will overflow or not
+        if (0x7fffffff - x1 &lt;= x0) {
+            throw 1; // overflow
+        }
+        x = x1 + x0;
+        x0 = x1;
+        x1 = x;
+        printf(&quot;%2d | %10u\n&quot;, i, x);
+        i = i + 1;
+    }
+} catch (err) {
+    printf(&quot; - overflow error!\n&quot;);
+}</code></pre>
+<p>Produces the output:</p>
+<pre language="Console"><code>[JS]$ js fib.js
+&quot;fib.js&quot;
+Code: 85 bytes.
+Data: 12 bytes.
+ 1 |          1
+ 2 |          2
+ 3 |          3
+ 4 |          5
+ 5 |          8
+ 6 |         13
+ ...
+43 |  701408733
+44 | 1134903170
+45 | 1836311903
+ - overflow error!
+[JS]$</code></pre>
+</body>
+</html>

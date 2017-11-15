@@ -55,8 +55,8 @@
 #define OPC_DEC      11
 #define OPC_NOT      12
 #define OPC_UNLK     13
-#define OPC_NOP4     14
-#define OPC_NOP5     15
+#define OPC_FPINT    14
+#define OPC_INTFP    15
 
 /* Binary integer operations */
 #define INTOP        (2 << 4)
@@ -84,7 +84,7 @@
 
 #define OPC_PUSHX    (6 << 4)  /* Push exception frame */
 #define OPC_JMP      (7 << 4)  /* Unconditional jump */
-#define OPC_JEQ      (8 << 4)  /* COnditional jump */
+#define OPC_JEQ      (8 << 4)  /* Conditional jump */
 #define OPC_SLD      (9 << 4)  /* SP relative load */
 
 #define OPC_SST      (10 << 4) /* SP relative store */
@@ -95,6 +95,28 @@
 #define OPC_RES2     (13 << 4)
 #define OPC_RES3     (14 << 4)
 #define OPC_RES4     (15 << 4)
+
+/* 2 operands (binary) fixed/float point operations */
+#define FPOP        (15 << 4)
+#define OPC_FPADD   (FPOP + 0)
+#define OPC_FPSUB   (FPOP + 1)
+#define OPC_FPMUL   (FPOP + 2)
+#define OPC_FPDIV   (FPOP + 3)
+/* Float point input, logic output */
+#define OPC_FPLT    (FPOP + 4)
+#define OPC_FPGT    (FPOP + 5)
+#define OPC_FPEQ    (FPOP + 6)
+#define OPC_FPNE    (FPOP + 7)
+#define OPC_FPLE    (FPOP + 8)
+#define OPC_FPGE    (FPOP + 9)
+/* Single operand float point elementary functions */
+#define OPC_FPEXP   (FPOP + 10)
+#define OPC_FPLOG   (FPOP + 10)
+#define OPC_FPRES3  (FPOP + 11)
+#define OPC_POLY2     (FPOP + 12)
+#define OPC_POLY3     (FPOP + 13)
+#define OPC_POLY4     (FPOP + 14)
+#define OPC_FP4       (FPOP + 15) /* -4.0, -3.0 ... 3.0 */
 
 /* --------------------------------------------------------------------------
    Virtual Machine
@@ -129,15 +151,20 @@ extern "C" {
 void microjs_vm_init(struct microjs_vm * vm, const struct microjs_rt * rt,
 					 const void * env, int32_t data[], int32_t stack[]);
 
+/* Fill the data block with a pattern, usually zeores */
 void microjs_vm_clr_data(struct microjs_vm * vm, 
 						 const struct microjs_rt * rt);
 
+/* Revert all Virtual Machine internal registers to defaults. */
 void microjs_vm_reset(struct microjs_vm * vm);
 
+/* Execute the provided microjs code using a virtual machine instance. */
 int microjs_exec(struct microjs_vm * vm, uint8_t code[]);
 
+/* Stops the execution of the code in this virtual machine instance. */
 void microjs_abort(struct microjs_vm * vm);
 
+/* Stops the execution of the code in this virtual machine instance. */
 void strbuf_init(uint16_t * buf, unsigned int len);
 
 #ifdef __cplusplus

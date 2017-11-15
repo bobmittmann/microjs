@@ -111,10 +111,15 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 	FILE * trace_f;
 	bool trace_en;
 #endif
+	/* PC: program counter */
 	uint8_t * pc = code + vm->pc;
+	/* Current data RAM block base pointer */
 	int32_t * data = vm->data;
+	/* SP: Stack pointer */
 	int32_t * sp = vm->stack + vm->sp;
+	/* XP: Exception frame pointer */
 	int32_t * xp = vm->stack + vm->xp;
+	/* LP: link pointer, holds return address for subroutine calls */
 	uint8_t * lp = code + vm->pc;
 	int ret;
 	int cnt = 0;
@@ -154,7 +159,8 @@ int microjs_exec(struct microjs_vm * vm, uint8_t code[])
 		opc >>= 4;
 
 		switch (opc) {
-			/* get the absolute call address */
+
+		/* get the absolute call address */
 		case (OPC_CALL >> 4):
 			r0 = (*pc++ << 4) + opt;
 			lp = pc;

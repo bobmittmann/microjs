@@ -1,106 +1,4 @@
-\documentclass[11pt]{article} % required
-\usepackage{geometry}
-\geometry{letterpaper, portrait, margin=1in, headheight=110pt}
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-
-\usepackage{amssymb}
-\usepackage{amsmath}
-\usepackage{amsthm}
-
-\begingroup
-\catcode`_=13
-\gdef\var{%
-	\begingroup
-	\catcode`_=13
-	\def_{\_}%
-	\dovar
-}
-\gdef\dovar#1{%
-	\mathtt{#1}%
-\endgroup
-}
-\endgroup
-
-\usepackage{color}
-%\usepackage[T1]{fontenc}
-\usepackage{droid}
-\renewcommand*\familydefault{\sfdefault} %% Only if the base font of the document is to be sans serif
-
-
-\usepackage{csquotes}
-\usepackage{varwidth}
-\usepackage{varwidth}
-\usepackage{capt-of}
-\usepackage{booktabs}
-\usepackage[pdftex]{graphicx}
-% declare the path(s) where your graphic files are
-\graphicspath{{img/pdf/}{img/png/}{img/pdf_tex/}}
-
-\usepackage{algorithm}
-\usepackage{algpseudocode}
-\usepackage{textgreek}
-\usepackage{mathtools} % for \ceil and \floor
-
-\usepackage{listings}
-
-\lstdefinelanguage{uJS} {
-	language = C,
-	morekeywords = {var, const, function, true, false, try, throw, catch},
-}
-
-\lstdefinelanguage{Console} {
-	keywords = {var, const, function, true, false, try, throw, catch},
-}
-
-%\usepackage{inconsolata}
-
-\lstset{
-	basicstyle=\footnotesize\ttfamily, 
-	keywordstyle=\color{blue}\bfseries\ttfamily,
-	stringstyle=\color{red}\ttfamily,
-	commentstyle=\color{magenta}\ttfamily,
-	identifierstyle=\color{black}\ttfamily,          
-%		 morecomment=[l][\color{magenta}]{\#},
-	numberstyle=\tiny,          
-	numbersep=5pt,             
-	tabsize=4,                
-	extendedchars=true,      
-	breaklines=true,        
-	showspaces=false,      
-	showtabs=false,       
-	xleftmargin=17pt,
-	framexleftmargin=17pt,
-	framexrightmargin=5pt,
-	framexbottommargin=4pt,
-	showstringspaces=false
-}
-
-\lstloadlanguages{
-	C, uJS, Console 
-}
-
-% Definition of \maketitle
-\makeatletter         
-\def\@maketitle{
-	\raggedright
-	\vfill
-	\begin{center}
-	{\Huge \bfseries \sffamily \@title }\\[4ex] 
-	{\Large \sffamily \@author}\\ 
-	{\sffamily \textit{\email}}\\[8ex]
-	{\sffamily \@date}\\[8ex]
-	{\sffamily \bfseries Revision \therevision}
-	\vfill
-	\includegraphics[height=40pt]{img/pdf/microjs-logo.pdf}
-	\vfill
-	\end{center}
-	\noindent\rule{\linewidth}{1pt}\\
-	\smallskip
-	\includegraphics[height=24pt]{img/pdf/thinkos-logo.pdf}
-	\quad
-}
-\makeatother
+\input{microjs-common.tex}
 
 % Define Title Author Date and Revision
 \makeatletter         
@@ -111,12 +9,6 @@
 \def\therevision{0.1} % revision number variable
 \let\thetitle\@title % title variable
 \makeatother
-
-\fancyhead[R]{\thepage}
-\rhead{\includegraphics[height=20pt]{img/pdf/microjs-logo.pdf}}
-\lhead{\thetitle}
-\rfoot{Page \thepage}
-\cfoot{}
 
 \begin{document}
 
@@ -130,28 +22,113 @@
 \newpage
 \listoftables
 \newpage
+
+% Start of the revision history table
+\begin{versionhistory}
+  \vhEntry{0.1}{22.01.04}{BM}{created}
+\end{versionhistory}
+
+\newpage
 \pagenumbering{arabic}
 
 \section{Introduction}
 
-Deep embedded systems with stringent memory resources --- comprising few kilobytes of memory -- can take advantage of a fast compiled language like MircoJS for scripting.
+\lettrine{T}{his} user guide provides the fundamental concepts of writing scripts using \textbf{\textmu JS} language. The intended audience are users of devices, equipments with some familiarity of computer programming.
 
-A common use for microjs is scripting on applications using small microcontrollers.
+Deep embedded systems with stringent memory and CPU resources --- sometimes with few kilobytes of RAM memory and dozens of kilobytes of FLASH --- takes full advantage of a fast compiled language like \textbf{\textmu JS} for scripting, allowing the users to extend the functionality of some devices. Examples of such applications are all sort of controllers industrial or otherwise, measurement instruments ... .
 
-The main advantage of compiling the code as oposed to interpret at runtime is the possibility of catching syntax errors before start executing the code, avoiding some undesirable situations where the script needs to abort because a late syntax error was catch. Besides that the compilation process is fast, since it is performed on a single pass. Despite that fact still some optimizations in the code in the vicinity of the current decoding (parsing) block is performed wich would be almost impossible for simple interpreters. The result is a fairly compact and fast code.
+\textbf{\textmu JS} --- pronounced as \textbf{micro J S} --- is a programming language most commonly used for scripting embedded applications running on small micro-controllers. In this sense it is not a general-purpose programming language like C++ or Java. For this reason \textbf{\textmu JS} is limited in its capabilities and but this is intentional. It should noted that \textbf{\textmu JS}'s syntax resembles JavaScript, hence the JS\footnote{The letters \textbf{J} \textbf{S} in \textbf{\textmu JS} are not part of an acronym nor a short for "JavaScript" which is a trademark of Oracle Corporation in the United States.} in the name. This fact can be used tho help editing programs by enabling syntax highlighting in text editors having this feature. JavaScript is mentioned several times in this document either to point similarities or differences between these two languages. 
 
-\section {Comments}
+\subsection{Run-time environment}
 
-Mulitline comments start with '/*' and ends with '*'. Whereas single line comments are indicated by a double slash: '//'.
+Similar to JavaScript, \textbf{\textmu JS} relies on a run-time environment to provide objects and methods by which scripts can interact with the device. It also relies on the run-time environment to provide the ability to include/import scripts 
 
-\section {Variables}
+Also like JavaScript, but for different reasons, there is no mechanism to include files for compilation or interpretation. Most platforms running/targeted by \textbf{\textmu JS} do not have or provide a generic file-system and even if they do have one it is constrained for the application use. The intent of 
 
-A variable, in MicroJS, always refers to a 32bits signed integer location in memory.
-Variables are declared using the keyword: "var", followed by the name of the variable and an optional initial assignment. Multiple variables can be declared in a single var expression.
+For simplicity and security scripts have limited access to resources and functions of the device. So different implementations would provide a dissimilar set of functions and objects that the script is capable of interacting with. 
 
-Ex:
+\subsection{Compilation}
 
-\begin{lstlisting}[caption={Example 2},label={lst:verilog-if},language=uJS,frame=single]
+Most simple scripting languages are interpreted. The interpreter reads one statement interprets it and execute it. 
+
+Although not always visible to the user, \textbf{\textmu JS} is a compiled language, meaning that the full script will be analysed and transformed into a low level code to be executed.
+
+The main advantage of compiling the code as opposed to interpret at runtime is the possibility of catching syntax errors before start executing the code, avoiding some undesirable situations where the script needs to abort because a late syntax error was catch. Besides that the compilation process is fast, since it is performed on a single pass. Despite that fact still some optimizations in the code in the vicinity of the current decoding (parsing) block is performed which would be almost impossible for simple interpreters. The result is a fairly compact and fast and secure code.
+
+Technically \textbf{\textmu JS} is a high-level, imperative,dynamic, weakly typed and compiled programming language. 
+
+\subsection{Virtual-Machine}
+
+The code generated by the compiler is not targeted to any specific hardware platform (core), instead the resulting bytecodes (pCode) are intended to run in an \uJS-VM (Virtual Machine), much the same as Java. 
+
+Bytecodes can be pre-compiled and stored in the device, allowing for faster execution. Several arrangements for execution of pre-compiled code can be provided by the implementation, like caching the bytecodes on the first time the script runs, so subsequent calls would run from the cache directly. The code can be compiled automatically on loading, so the bytecode is stored on the memory and is ready to run. In this scenario the source code can be discarded, possibly saving some space. Another option is for the code to be compiled on a host computer or subsystem and just the bytecodes are transferred to the target device, so the device doesn't need to implement the \uJS Compiler just the Virtual Machine.
+
+\section {Syntax}
+
+\lettrine{S}{scripts} or programs written in \textbf{\textmu JS} must obey a fixed set of rules in order to be correctly interpreted by the compiler. These rules are dictated by the syntax of \textbf{\textmu JS} which are described next. Users familiar with C, C++ or JavaScript syntax will find some --- intentional -- similarities with those languages.
+
+\subsection{Case sensitivity}
+
+Like most modern languages, \textbf{\textmu JS} is case sensitive. It is common for constants to be typed all capitals, and the name of a function or variable with lower-case letters.\\
+
+Example:
+\begin{lstlisting}[language=uJS]
+const M = 32;
+const N = 15;
+var x = 5;
+var y;
+var z;
+
+y = rand();
+z = M*y + N*x;
+\end{lstlisting}
+
+\subsection{Statements}
+
+A statement is the smallest standalone element of the language that expresses some action to be carried out. It is an instruction that commands the computer to perform a specified action. A program written in \textbf{\textmu JS} is formed by a sequence of one or more statements. 
+
+\subsubsection{Simple statements}
+
+A simple statement consists of functions, variable and constant declarations, expressions that change the value of a variable or function calls. 
+
+The end of a simple statement is indicated by a semicolon `\texttt{;}`. Although a simple statement is usually contained in a single line of code this is not necessary. Also several simple statements can be contained in a single line.
+
+\subsubsection{Compound statements}
+
+A pair of curly brackets \textbf{{ }} and an enclosed sequence of statements constitute a compound statement, which can be used wherever a statement can be used. Compound statements are mandatory for control structures.
+
+\subsection{Whitespaces}
+
+Spaces, tabs and newlines used outside of string constants are called whitespace. Those elements do not have any syntactical function in \textbf{\textmu JS} --- much the same as C --- but different from JavaScript who has "automatic semicolon insertion" (ASI).
+
+\subsection {Comments}
+
+Comments syntax is the same as JavaScript and C++. Blocks comments start with '\texttt{/*}' and ends with '\texttt{*/}'. Whereas single line comments are indicated by a double slash: '\texttt{//}'.\\
+
+Example:
+\begin{lstlisting}[language=uJS]
+// this line is a comment and will be ignored by the compiler
+const STEP = 32; // single line comment
+const STOP = STEP * 32; 
+var x; /* trail block as single line comment  ... */
+var y = /* you shouldn't do this */ 0; 
+
+/* 
+	This is a simple example of a multiline block comment that
+	will be completely ignored by the compiler but hopefully
+	not by other developers.
+*/
+for (x = x; x < STOP; x = x + STEP)
+	y = 123;
+}
+
+\end{lstlisting}
+\subsection {Variables}
+
+Variables are declared using the keyword: \textbf{var}, followed by the name of the variable and an optional initial assignment. Multiple variables can be declared in a single var expression.\\
+
+Example:
+\begin{lstlisting}[language=uJS]
 var i;
 
 var i = 0;
@@ -161,13 +138,91 @@ var i, j;
 var i = 0, j = 1;
 \end{lstlisting}
 
-\subsection {Boolean}
+\subsection {Constants} 
 
-\section {Operators}
+Constants are declared with the \texttt{const} keyword followed by a name (symbol) and an assignment expression. When compiled the \texttt{const} declaration creates a read-only reference to an immutable value. This way the value of a constant cannot change through re-assignment, and it can't be redeclared. Also, like variables, constants are block-scoped. \\
 
-\subsection {Arithmetic Operators}
+Example:
+\begin{lstlisting}[language=uJS]
+const ONE = 1;
+const TWO = ONE + ONE;
+\end{lstlisting}
 
-Those arithmetic operators are supported by MicroJS:
+\subsection{Scoping}
+
+Just like C, variables and constants are block scoped and the order of declarations matter. This differs from JavaScript which has lexical scope where the order of declarations is irrelevant.
+
+When \textbf{\textmu JS} tries to resolve an identifier, it looks in the local scope. If this identifier is not found, it looks in the outer scope that encloses the local one, and so on along the scope chain until it reaches the global scope where global variables reside. If it is still not found, \textbf{\textmu JS} compiler will stop and return an error.
+
+\subsubsection {Global Scope}
+
+Variables declared outside any compound statement are global meaning that they can be accessed anywhere on the script or other scripts. That is, the global scope is persistent in the run-time environment by default. However some implementations can provide multiple either multiple run-time environments, isolating their global scopes or a mechanism to clear the global scope. 
+
+\subsubsection {Local Scope}
+
+The beginning of a compound statement defines a new local scope nested within a previous one or the global scope. Any variable or constant declared in the local scope will reside in a memory location allocated in the stack and will be automatically cleared, thus unavailable, et the end of the statement. 
+
+\subsubsection{Declaration and assignment}
+
+When assigning an identifier, \textbf{\textmu JS} will create a new "\textit{variable}" in the local scope. As a consequence, a variable never declared will be global, if assigned. Declaring a variable (with the keyword var) in the global code (i.e. outside of any function body), is the only way to create new global variable. When a global variable is declared \textbf{\textmu JS} will check if another variable with the  name (identifier) already exists, in this case the variable will be reused, this is useful to share/communicate among different scripts. As a side effect variables can be unintentionally overwritten, so global variables should be used with caution.
+
+When assigning an identifier, \textbf{\textmu JS} goes through exactly the same process to retrieve this identifier, except that if it is not found in the global scope, it will create a new "\textit{variable}" in the local scope. As a consequence, a variable never declared will be global, if assigned. Declaring a variable (with the keyword var) in the global code (i.e. outside of any function body), assigning a never declared identifier or adding a property to the global object (usually window) will also create a new global variable.
+
+Constants --- declared with texttt{const} --- cannot be declared without initialization.\\
+
+Examples:
+
+\begin{lstlisting}[language=uJS]
+var x = 0; // A global variable, because it is not in any inner scope.
+
+{ // start a local scope
+	var y = 1;
+	print(x, y); 
+}
+
+print(y); // error: y is out of scope 
+
+function f() 
+{
+	var z = 1, r = x; // 2 local variables
+
+	if (z == x) {
+		var r = 2; // This variable is local, and does not affect the r of the parent scope.
+		var i;
+		for (i = 0; i < r; i++) { 
+			print(i); 
+		}
+	}
+	return x; // We can use x here, because it is global
+}
+
+f();
+
+j = x + 1; // error: Assignment to constant variable
+
+const m; // error: Missing initializer in const declaration
+
+\end{lstlisting}
+
+\subsection{Primitive data types}
+
+A variable or constant, in \textbf{\textmu JS}, always refers to a 32bits signed integer location in memory. \footnote{Although 32 bits is the most common case some implementations provide 64 bits integral numbers.} This is the base type for all operations. Other types are just a convenience as they will be promoted to Integer internally.
+
+\subsubsection {Integer}
+
+\subsubsection {Boolean}
+
+\subsubsection {Char}
+
+\subsubsection {String}
+
+\subsection {Operators}
+
+Expressions in \textbf{\textmu JS} are constructed using two types of operators provides  expression. An unary expression consists of a unary operator prepended to an operand, whereas binary expression consists of two operands joined by a binary operator.
+
+\subsubsection {Arithmetic Operators}
+
+Those arithmetic operators are supported by \textbf{\textmu JS}:
 
 \begin{table}[H]
 \begin{tabular}{ c l l }
@@ -184,7 +239,7 @@ Those arithmetic operators are supported by MicroJS:
 \end{tabular}
 \centering
 \caption{Arithmetic Operators}
-\label{tab:operators}
+\label{tab:arith-operators}
 \end{table} 
 
 \subsection {Logic Operators}
@@ -201,7 +256,7 @@ Those arithmetic operators are supported by MicroJS:
 \end{tabular}
 \centering
 \caption{Logic Operators}
-\label{tab:operators}
+\label{tab:logic-operators}
 \end{table} 
 
 \subsection{Bitwise Operators}
@@ -221,7 +276,7 @@ Those arithmetic operators are supported by MicroJS:
 \end{tabular}
 \centering
 \caption{Bitwise Operators}
-\label{tab:operators}
+\label{tab:bitwise-operators}
 \end{table} 
 
 \subsection{Numeric Comparison}
@@ -241,30 +296,101 @@ Those arithmetic operators are supported by MicroJS:
 \end{tabular}
 \centering
 \caption{Numeric Comparison}
-\label{tab:operators}
+\label{tab:numeric-comp}
 \end{table} 
 
-\subsection{Operators Precedence}
+\subsubsection{Operators Precedence}
 
-\section {Strings}
+\subsection{Control structures}
 
-\section {Functions}
+The structures described here provide the ability to control the flow of your program, letting it make decisions on what code to execute.
 
-\section {Control Flow}
+\subsubsection{If ... else}
 
-\section {Scope of Variables}
+The if statement allows you to control if a program enters a section of code or not based on whether a given condition is true or false.
 
-\subsection {Global Scope}
+\begin{lstlisting}[language=uJS]
+if (expr) {
+	//statements;
+} else if (expr2) {
+	//statements;
+} else {
+	//statements;
+}
+\end{lstlisting}
 
-\subsection {Local Scope}
+\subsubsection{For loop}
 
-\section {Constants} 
+The syntax of the \textbf{\textmu JS} for loop is as follows:
 
-\section {Vectors}
+\begin{lstlisting}[language=uJS]
+for (initial; condition; loop statement) {
+/* statements will be executed every time
+	the for{} loop cycles, while the
+	condition is satisfied */
+}
+\end{lstlisting}
 
-\section {Methods}
+\subsubsection{While loop}
+
+The syntax of the \textbf{\textmu JS} \textbf{while loop} is as follows:
+
+\begin{lstlisting}[language=uJS]
+while (condition) {
+	// statement1;
+	// statement2;
+	// statement3;
+	// ...
+}
+\end{lstlisting}
+
+\subsubsection{Exception handling}
+
+\textbf{\textmu JS} includes a \textbf{\texttt{try ... catch}} exception handling statement to handle run-time errors.
+
+The \textbf{\texttt{try ... catch}} statement catches exceptions resulting from an error or a throw statement. Its syntax is as follows:
+
+\begin{lstlisting}[language=uJS]
+try {
+	  // Statements in which exceptions might be thrown
+} catch(err) {
+	// Statements that execute in the event of an exception
+}
+\end{lstlisting}
+
+Initially, the statements within the try block execute. If an exception is thrown, the script's control flow immediately transfers to the statements in the catch block, with the exception available as the error argument. Otherwise the catch block is skipped. The catch block can throw(error), if it does not want to handle a specific error.
+
+The virtual machine provides a default exception handler that will cause the script to abort.
+
+\subsection{Reserved Words}
+
+In \textbf{\textmu JS} you cannot use these reserved words as variables, constants, or function names:
+
+\begin{table}[H]
+\begin{tabular}{ c c c c }
+	\toprule
+	catch & const	 & else	& false\\
+	for	  & function & if	& return\\
+	throw &	true     & try	& var\\	
+	void  & while    &      & \\
+	\bottomrule
+\end{tabular}
+\centering
+\caption{Reserved Words}
+\label{tab:reserved-words}
+\end{table} 
+
+\subsection {Functions}
+
+\subsection {Vectors}
+
+\subsection {Methods}
+
+\subsection {Objcets}
 
 \section {System Libraries}
+
+\subsubsection{Native functions and methods}
 
 \section {User Libraries}
 
@@ -316,6 +442,110 @@ Data: 12 bytes.
  - overflow error!
 [JS]$
 \end{lstlisting}
+
+\section{Appendix}
+
+\subsection{BNF Grammar}
+
+%\renewcommand{\litleft}{\bf}
+%\renewcommand{\litright}{}
+%\renewcommand{\litright}{}
+
+\setlength{\grammarparsep}{20pt plus 1pt minus 1pt} % increase separation between rules
+\setlength{\grammarindent}{8em} % increase separation between LHS/RHS
+
+\begin{grammar}
+	<script> ::= <statement> <script>
+	<script> ::= <function-def> <script>
+	\alt `return' `;'
+
+	<ident-list> ::= <ident> `,' <ident-list> | <ident> | <empty>
+
+	<var-list> ::= <ident> `=' <expr> `,' <var-list> 
+	\alt <ident> `,' <var-list> 
+	\alt <ident> `=' <expr>
+	\alt <ident>
+
+	<const-list> ::= <ident> `=' <expr> `,' <const-list> | <ident> `=' <expr>
+
+	<function-def> ::= `function' `(' <ident-list> `)' `{' <declaration-specifier> `}'
+
+	<stat-list> ::= <statement> `;' <stat-list> | <statement>
+
+	<statement> ::= `throw' <exp> `;'
+	\alt `var' <var-list> `;'
+	\alt `const' <const-list> `;'
+	\alt `return' `;'
+	\alt `return' <exp> `;'
+	\alt <ident> `=' <expr> `;'
+	\alt `for' `(' <exp> `;' <exp> `;' <exp> `)' `{' <stat-list> `}'
+	\alt `while' `(' <exp> `)' `{' <stat-list> `}'
+	\alt `if' `(' <exp> `)' `{' <stat-list> `}' 
+	\alt `if' `(' <exp> `)' `{' <stat-list> `}' `else' `{' <stat-list> `}'
+	\alt `try' `{' <stat-list> `}' 
+	\alt `try' `{' <stat-list> `}' `catch' `(' <ident> `)' `{' <stat-list> `}'
+	\alt `{' <stat-list> `}'
+	\alt <empty>
+
+	<constant-exp> ::= <logic-or-exp> 
+
+	<logic-or-exp> ::= <logic-and-exp> 
+	\alt <logic-or-exp> `||' <logic-and-exp> 
+
+	<logic-and-exp> ::= <or-exp> 
+	\alt <logic-and-exp> `\&\&' <or-exp> 
+
+	<or-exp> ::= <xor-exp> 
+	\alt <or-exp> `|' <xor-exp> 
+
+	<xor-exp> ::= <and-exp> 
+	\alt <xor-exp> `^' <and-exp> 
+
+	<and-exp> ::= <equality-exp> 
+	\alt <and-exp> `\&' <equality-exp> 
+
+	<equality-exp> ::= <relational-exp>
+	\alt <equality-exp> `==' <relational-exp>
+	\alt <equality-exp> `!=' <relational-exp>
+
+	<relational-exp> ::= <shift-exp>
+	\alt <relational-exp> `<' <shift-exp>
+	\alt <relational-exp> `>' <shift-exp>
+	\alt <relational-exp> `<=' <shift-exp>
+	\alt <relational-exp> `>=' <shift-exp>
+
+	<shift-exp> ::= <additive-exp>
+	\alt <shift-exp> `<<' <additive-exp>
+	\alt <shift-exp> `>>' <additive-exp>
+
+	<additive-exp> ::= <mult-exp>
+	\alt <additive-exp> `+' <mult-exp>
+	\alt <additive-exp> `-' <mult-exp>
+
+	<mult-exp> ::= <unary-exp> 
+	\alt <mult-exp> `*' <unary-exp>
+	\alt <mult-exp> `/' <unary-exp>
+	\alt <mult-exp> `\%' <unary-exp>
+
+	<unary-exp> ::= <primary-exp>
+	\alt `~' <unary-exp>
+	\alt `-' <unary-exp>
+	\alt `!' <unary-exp>
+
+	<primary-exp> ::= <ident>
+	\alt <constant>
+	\alt <string>
+	\alt `(' <exp> `)'
+
+	<constant> ::= <integer>
+	\alt <char>
+	\alt <string>
+	\alt `true'
+	\alt `false'
+
+	<exp> ::= <assign-expression>
+
+\end{grammar}
 
 \end{document}
 

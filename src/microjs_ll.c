@@ -562,7 +562,7 @@ int microjs_ll_start(uint8_t * sp)
 	return 2;
 }
 
-const const char * const microjs_ll_sym[] = {
+const char * const microjs_ll_sym[] = {
 	"EOF",
  	"DOT",
  	"COMMA",
