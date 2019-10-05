@@ -38,7 +38,6 @@ examples/posix/stamp-h1
 examples/posix/Makefile
 examples/posix/config.status
 .dirstamp
-examples/posix/configure
 *.swp
 doc/img/desktop.ini
 doc/microjs-internals.lof
